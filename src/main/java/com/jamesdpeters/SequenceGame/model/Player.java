@@ -1,8 +1,17 @@
 package com.jamesdpeters.SequenceGame.model;
 
-import lombok.Setter;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
-public record Player(UUID uuid) {
+@RequiredArgsConstructor
+@Getter
+public final class Player {
+	private final UUID uuid;
+	private final List<Card> hand = new ArrayList<>();
+
+
 }

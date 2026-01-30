@@ -14,16 +14,19 @@ public class Game {
 
 	private UUID uuid;
 	private Status status;
+	private int maxPlayers = 2;
 	private final Instant createdDate = Instant.now();
 	private Instant startedDate;
 	private List<Player> players = new ArrayList<>();
+	private Deck deck = new Deck();
 
-	public Game(UUID uuid, Status status) {
-		this.uuid = uuid;
-		this.status = status;
+	public Game() {
+		this.uuid = UUID.randomUUID();
+		this.status = Status.NOT_STARTED;
 	}
 
 	public enum Status {
 		NOT_STARTED, IN_PROGRESS, COMPLETED
 	}
+
 }

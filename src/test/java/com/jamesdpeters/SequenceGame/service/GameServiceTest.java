@@ -6,8 +6,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.temporal.ValueRange;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,9 +41,14 @@ class GameServiceTest {
 	}
 
 	@Test
-	void getGame() {
+	void deckGenerated() {
 		Game game = gameService.createGame();
+		assertEquals(104, game.getDeck().size());
+	}
 
+	@Test
+	void verifyGameRetrievedByUuid() {
+		Game game = gameService.createGame();
 		Game gameByUuid = gameService.getGame(game.getUuid());
 
 		assertNotNull(gameByUuid);
@@ -56,14 +59,13 @@ class GameServiceTest {
 	@Test
 	void playerJoinsGame() {
 		Game game = gameService.createGame();
-
 		Player player = gameService.joinGame(game.getUuid());
 
 		var gameByUuid = gameService.getGame(game.getUuid());
 		assertNotNull(gameByUuid);
 
 		assertEquals(1, gameByUuid.getPlayers().size());
-		assertEquals(player.uuid(), gameByUuid.getPlayers().getFirst().uuid());
+		assertEquals(player.getUuid(), gameByUuid.getPlayers().getFirst().getUuid());
 	}
 
 	@Test
@@ -76,6 +78,15 @@ class GameServiceTest {
 
 			assertThrows(IllegalArgumentException.class, () -> gameService.joinGame(UUID.fromString("cafebabe-cafe-babe-cafe-babecafebabe")));
 		}
+	}
+
+	@Test
+	void gameDoesNotExceedMaxPlayers() {
+		Game game = gameService.createGame();
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+
+		assertThrows(IllegalStateException.class, () -> gameService.joinGame(game.getUuid()));
 	}
 
 }
