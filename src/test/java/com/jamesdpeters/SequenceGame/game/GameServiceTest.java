@@ -1,8 +1,6 @@
 package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.game.Game;
-import com.jamesdpeters.SequenceGame.player.Player;
-import com.jamesdpeters.SequenceGame.game.GameService;
+import com.jamesdpeters.SequenceGame.game.player.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +33,11 @@ class GameServiceTest {
 	@Test
 	void gameStarted() {
 		Game game = gameService.createGame();
+
+		// Add two players to the game so it can be started
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+
 		gameService.startGame(game);
 
 		assertEquals(Game.Status.IN_PROGRESS, game.getStatus());
@@ -66,7 +69,7 @@ class GameServiceTest {
 		assertNotNull(gameByUuid);
 
 		assertEquals(1, gameByUuid.getPlayers().size());
-		assertEquals(player.getUuid(), gameByUuid.getPlayers().getFirst().getUuid());
+		assertEquals(player.publicUuid(), gameByUuid.getPlayers().getFirst().publicUuid());
 	}
 
 	@Test
@@ -88,6 +91,27 @@ class GameServiceTest {
 		gameService.joinGame(game.getUuid());
 
 		assertThrows(IllegalStateException.class, () -> gameService.joinGame(game.getUuid()));
+	}
+
+	@Test
+	void gameWithNoPlayersCannotBeStarted() {
+		Game game = gameService.createGame();
+		assertThrows(IllegalStateException.class, () -> gameService.startGame(game));
+	}
+
+	@Test
+	void playersAreDealtCards_twoPlayers() {
+		Game game = gameService.createGame();
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+
+		gameService.startGame(game);
+
+		var player1hand = game.getPlayerHands().get(game.getPlayers().getFirst());
+		var player2hand = game.getPlayerHands().get(game.getPlayers().getLast());
+
+		assertEquals(7, player1hand.size());
+		assertEquals(7, player2hand.size());
 	}
 
 }

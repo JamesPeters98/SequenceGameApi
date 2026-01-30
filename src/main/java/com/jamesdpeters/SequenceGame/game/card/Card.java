@@ -1,4 +1,4 @@
-package com.jamesdpeters.SequenceGame.deck;
+package com.jamesdpeters.SequenceGame.game.card;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

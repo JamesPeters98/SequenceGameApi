@@ -1,13 +1,10 @@
 package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.player.Player;
+import com.jamesdpeters.SequenceGame.game.player.Player;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -16,20 +13,51 @@ public class GameService {
 
 	private final GameRepository gameRepository;
 
+	/**
+	 * Creates a new game instance, initialises its default properties,
+	 * and saves it to the game repository.
+	 *
+	 * @return the newly created and saved game instance
+	 */
 	public Game createGame() {
 		var game = new Game();
 		return gameRepository.save(game);
 	}
 
+	/**
+	 * Starts the given game by updating its status to "IN_PROGRESS"
+	 * and setting its start time to the current timestamp.
+	 *
+	 * @param game the game to be started; must not be null
+	 */
 	public void startGame(@NonNull Game game) {
+		if (game.getPlayers().isEmpty() || game.getPlayers().size() < 2) {
+			throw new IllegalStateException("Game must have at least two players");
+		}
+		game.dealCards();
 		game.setStatus(Game.Status.IN_PROGRESS);
-		game.setStartedDate(Instant.now());
+		game.setGameStarted();
 	}
 
-	public Game getGame(UUID uuid) {
+	/**
+	 * Retrieves a game instance by its unique identifier (UUID).
+	 *
+	 * @param uuid the unique identifier of the game to retrieve; must not be null
+	 * @return the game associated with the specified UUID, or null if no such game exists
+	 */
+	public Game getGame(@NonNull UUID uuid) {
 		return gameRepository.findByUuid(uuid);
 	}
 
+	/**
+	 * Allows a new player to join an existing game identified by its UUID. If the game does not exist
+	 * or has already reached the maximum number of players, an appropriate exception is thrown.
+	 *
+	 * @param gameUuid the unique identifier of the game the player wants to join; must not be null
+	 * @return the newly created player who joined the game
+	 * @throws IllegalArgumentException if no game is found with the provided UUID
+	 * @throws IllegalStateException if the game has already reached the maximum number of players
+	 */
 	public Player joinGame(UUID gameUuid) {
 		var game = gameRepository.findByUuid(gameUuid);
 		if (game == null) {
@@ -39,7 +67,7 @@ public class GameService {
 			throw new IllegalStateException("Game already has maximum number of players");
 		}
 
-		var player = new Player(UUID.randomUUID());
+		var player = new Player(UUID.randomUUID(), UUID.randomUUID());
 		game.getPlayers().add(player);
 		return player;
 	}
