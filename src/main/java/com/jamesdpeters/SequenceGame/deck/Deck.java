@@ -1,4 +1,4 @@
-package com.jamesdpeters.SequenceGame.model;
+package com.jamesdpeters.SequenceGame.deck;
 
 import java.util.ArrayList;
 import java.util.Collections;

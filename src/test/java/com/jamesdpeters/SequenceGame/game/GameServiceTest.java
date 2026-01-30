@@ -1,7 +1,8 @@
-package com.jamesdpeters.SequenceGame.service;
+package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.model.Game;
-import com.jamesdpeters.SequenceGame.model.Player;
+import com.jamesdpeters.SequenceGame.game.Game;
+import com.jamesdpeters.SequenceGame.player.Player;
+import com.jamesdpeters.SequenceGame.game.GameService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,7 @@ class GameServiceTest {
 
 	@BeforeEach
 	void setUp() {
-		gameService = new GameService();
+		gameService = new GameService(new InMemoryGameRepository());
 	}
 
 	@Test

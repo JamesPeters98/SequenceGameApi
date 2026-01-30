@@ -1,7 +1,7 @@
-package com.jamesdpeters.SequenceGame.service;
+package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.model.Game;
-import com.jamesdpeters.SequenceGame.model.Player;
+import com.jamesdpeters.SequenceGame.player.Player;
+import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
@@ -11,14 +11,14 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class GameService {
 
-	private final Map<UUID, Game> games = new HashMap<>();
+	private final GameRepository gameRepository;
 
 	public Game createGame() {
 		var game = new Game();
-		games.put(game.getUuid(), game);
-		return game;
+		return gameRepository.save(game);
 	}
 
 	public void startGame(@NonNull Game game) {
@@ -27,11 +27,11 @@ public class GameService {
 	}
 
 	public Game getGame(UUID uuid) {
-		return games.get(uuid);
+		return gameRepository.findByUuid(uuid);
 	}
 
 	public Player joinGame(UUID gameUuid) {
-		var game = games.get(gameUuid);
+		var game = gameRepository.findByUuid(gameUuid);
 		if (game == null) {
 			throw new IllegalArgumentException("Game not found with UUID: " + gameUuid);
 		}

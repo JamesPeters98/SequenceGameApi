@@ -1,5 +1,6 @@
-package com.jamesdpeters.SequenceGame.model;
+package com.jamesdpeters.SequenceGame.player;
 
+import com.jamesdpeters.SequenceGame.deck.Card;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

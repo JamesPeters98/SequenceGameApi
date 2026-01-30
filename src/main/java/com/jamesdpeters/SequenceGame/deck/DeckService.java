@@ -1,4 +1,4 @@
-package com.jamesdpeters.SequenceGame.service;
+package com.jamesdpeters.SequenceGame.deck;
 
 import org.springframework.stereotype.Service;
 
