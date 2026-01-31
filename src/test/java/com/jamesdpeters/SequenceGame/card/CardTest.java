@@ -48,6 +48,7 @@ class CardTest {
 		assertNull(Card.fromString("AXS"));
 		assertNull(Card.fromString("B1"));
 		assertNull(Card.fromString("1A"));
+		assertNull(Card.fromString("BH"));
 	}
 
 }
