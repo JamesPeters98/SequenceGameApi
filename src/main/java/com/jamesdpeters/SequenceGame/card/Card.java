@@ -18,6 +18,14 @@ public record Card(Suit suit, int value) {
 		return new Card(suit, rank);
 	}
 
+	public boolean isOneEyedJack() {
+		return (suit == Suit.CLUBS || suit == Suit.SPADES) && value == 11;
+	}
+
+	public boolean isTwoEyedJack() {
+		return (suit == Suit.HEARTS || suit == Suit.DIAMONDS) && value == 11;
+	}
+
 	private static Suit getSuit(char suitChar) {
 		return switch (suitChar) {
 			case 'S' -> Suit.SPADES;

@@ -7,6 +7,8 @@ import java.util.List;
 
 public class Deck extends ArrayDeque<Card> {
 
+	private final ArrayList<Card> discardPile = new ArrayList<>();
+
 	public Deck() {
 		var cards = new ArrayList<Card>();
 		for (Card.Suit value : Card.Suit.values()) {
@@ -20,8 +22,14 @@ public class Deck extends ArrayDeque<Card> {
 		addAll(cards);
 	}
 
+	public Deck(List<Card> cards) {
+		super(cards);
+	}
+
 	public Card draw() {
-		if (isEmpty()) {
+		if (isEmpty() && !discardPile.isEmpty()) {
+			shuffleDiscardPileIntoDeck();
+		} else if (isEmpty()) {
 			throw new IllegalStateException("Deck is empty");
 		}
 		return removeFirst();
@@ -33,6 +41,16 @@ public class Deck extends ArrayDeque<Card> {
 			cards.add(draw());
 		}
 		return cards;
+	}
+
+	public void discard(Card card) {
+		discardPile.add(card);
+	}
+
+	private void shuffleDiscardPileIntoDeck() {
+		Collections.shuffle(discardPile);
+		addAll(discardPile);
+		discardPile.clear();
 	}
 
 }

@@ -17,4 +17,19 @@ class DeckTest {
 		});
 	}
 
+	@Test
+	void testDiscardPileIsShuffledAfterEmptyDeckDraw() {
+		var deck = new Deck();
+		var fullDeckSize = deck.size();
+		for (int i = 0; i < fullDeckSize; i++) {
+			deck.draw();
+		}
+		assertEquals(0, deck.size());
+
+		var discardedCard = new Card(Card.Suit.SPADES, 1);
+		deck.discard(discardedCard);
+		var newCard = deck.draw();
+		assertEquals(discardedCard, newCard);
+	}
+
 }
