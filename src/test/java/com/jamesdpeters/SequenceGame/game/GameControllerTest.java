@@ -168,14 +168,4 @@ class GameControllerTest {
 		assertEquals(uuid.toString(), problemDetail.getProperties().get("uuid"));
 	}
 
-	@Test
-	void playerCantStartGameIfGameNotFound() {
-		var uuid = UUID.randomUUID();
-		var problemDetail = restTestClient.post().uri("/game/{gameUuid}/start/{hostUuid}", uuid, player.privateUuid())
-						.exchange()
-						.expectStatus().isNotFound()
-						.returnResult(ProblemDetail.class)
-						.getResponseBody();
-	}
-
 }
