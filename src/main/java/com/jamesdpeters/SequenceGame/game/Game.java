@@ -1,6 +1,7 @@
 package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.board.Board;
+import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.card.Card;
 import com.jamesdpeters.SequenceGame.card.Deck;
 import com.jamesdpeters.SequenceGame.player.Player;
@@ -24,6 +25,7 @@ public class Game {
 	private final Deck deck = new Deck();
 	private final Board board = new Board();
 	private final Map<UUID, List<Card>> playerHands = new HashMap<>();
+	private final Map<UUID, ChipColour> teams = new HashMap<>();
 	@Getter(AccessLevel.NONE) private final List<UUID> players = new ArrayList<>();
 
 	private final int maxPlayers;
@@ -46,11 +48,18 @@ public class Game {
 		NOT_STARTED, IN_PROGRESS, COMPLETED
 	}
 
+	public void initialise() {
+		organiseTeams();
+		dealCards();
+		setStatus(Status.IN_PROGRESS);
+		setGameStarted();
+	}
+
 	public void setGameStarted() {
 		this.startedDate = Instant.now();
 	}
 
-	public void dealCards() {
+	protected void dealCards() {
 		for (UUID player : players) {
 			playerHands.put(player, deck.draw(getGameHandSize()));
 		}
@@ -68,9 +77,37 @@ public class Game {
 	private int getGameHandSize() {
 		return switch ( players.size() ) {
 			case 2 -> 7;
-			case 3 -> 5;
+			case 3, 4 -> 6;
+			case 6 -> 5;
+			case 8, 9 -> 4;
+			case 10, 12 -> 3;
 			default -> throw new IllegalStateException( "Unexpected value: " + players.size() );
 		};
+	}
+
+	public boolean isValidPlayerSize() {
+		try {
+			getGameHandSize();
+			return true;
+		} catch (IllegalStateException e) {
+			return false;
+		}
+	}
+
+	public int getNumberOfTeams() {
+		if (players.size() % 3 == 0) {
+			return 3;
+		}
+		if (players.size() % 2 == 0) {
+			return 2;
+		}
+		throw new IllegalStateException("Unexpected number of players: " + players.size());
+	}
+
+	protected void organiseTeams() {
+		for (int i = 0; i < players.size(); i++) {
+			teams.put(players.get(i), ChipColour.values()[i % getNumberOfTeams()]);
+		}
 	}
 
 }

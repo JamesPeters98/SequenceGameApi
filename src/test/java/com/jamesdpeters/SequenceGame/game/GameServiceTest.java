@@ -163,9 +163,9 @@ class GameServiceTest {
 		var player2hand = game.getPlayerHands().get(game.getPlayers().get(1));
 		var player3hand = game.getPlayerHands().get(game.getPlayers().get(2));
 
-		assertEquals(5, player1hand.size());
-		assertEquals(5, player2hand.size());
-		assertEquals(5, player3hand.size());
+		assertEquals(6, player1hand.size());
+		assertEquals(6, player2hand.size());
+		assertEquals(6, player3hand.size());
 	}
 
 

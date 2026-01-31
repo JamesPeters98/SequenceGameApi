@@ -48,9 +48,7 @@ public class GameService {
 		if (game.getPlayers().isEmpty() || game.getPlayers().size() < 2) {
 			throw new GameNotFullException(game.getUuid());
 		}
-		game.dealCards();
-		game.setStatus(Game.Status.IN_PROGRESS);
-		game.setGameStarted();
+		game.initialise();
 	}
 
 	/**
