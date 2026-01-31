@@ -48,4 +48,14 @@ class GameTest {
 			assertEquals(expectedTeams, teams.size());
 	}
 
+	@Test
+	void firstPlayerIsCurrentTurn() {
+		Game game = new Game(2);
+		game.addPlayer(new Player());
+		game.addPlayer(new Player());
+		game.organiseTeams();
+
+		assertEquals(game.getPlayers().getFirst(), game.getCurrentPlayerTurn());
+	}
+
 }

@@ -31,6 +31,7 @@ public class Game {
 	private final int maxPlayers;
 	private Instant startedDate;
 	private Player host;
+	private UUID currentPlayerTurn;
 
 	@Setter private Status status;
 
@@ -66,7 +67,10 @@ public class Game {
 	}
 
 	public void addPlayer(Player player) {
-		if (players.isEmpty()) host = player;
+		if (players.isEmpty()) {
+			host = player;
+			currentPlayerTurn = player.publicUuid();
+		}
 		players.add(player.publicUuid());
 	}
 
