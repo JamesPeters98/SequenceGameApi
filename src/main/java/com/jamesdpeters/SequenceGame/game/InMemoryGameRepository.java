@@ -1,8 +1,7 @@
 package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.game.player.Player;
+import com.jamesdpeters.SequenceGame.player.Player;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;

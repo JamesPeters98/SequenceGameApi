@@ -1,4 +1,4 @@
-package com.jamesdpeters.SequenceGame.game.card;
+package com.jamesdpeters.SequenceGame.card;
 
 import org.junit.jupiter.api.Test;
 

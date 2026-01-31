@@ -1,6 +1,6 @@
 package com.jamesdpeters.SequenceGame.game;
 
-import com.jamesdpeters.SequenceGame.game.player.Player;
+import com.jamesdpeters.SequenceGame.player.Player;
 
 import java.util.UUID;
 

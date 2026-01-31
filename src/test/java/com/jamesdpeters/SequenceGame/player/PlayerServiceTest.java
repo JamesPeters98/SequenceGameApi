@@ -1,15 +1,12 @@
-package com.jamesdpeters.SequenceGame.game.player;
+package com.jamesdpeters.SequenceGame.player;
 
-import com.jamesdpeters.SequenceGame.game.Game;
 import com.jamesdpeters.SequenceGame.game.GameRepository;
 import com.jamesdpeters.SequenceGame.game.GameService;
 import com.jamesdpeters.SequenceGame.game.InMemoryGameRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 class PlayerServiceTest {
 

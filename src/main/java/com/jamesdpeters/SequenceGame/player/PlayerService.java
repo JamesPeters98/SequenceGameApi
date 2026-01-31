@@ -1,4 +1,4 @@
-package com.jamesdpeters.SequenceGame.game.player;
+package com.jamesdpeters.SequenceGame.player;
 
 import com.jamesdpeters.SequenceGame.game.Game;
 import com.jamesdpeters.SequenceGame.game.GameRepository;
@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor

@@ -1,9 +1,8 @@
 package com.jamesdpeters.SequenceGame.game;
 
-import com.google.errorprone.annotations.Immutable;
-import com.jamesdpeters.SequenceGame.game.card.Card;
-import com.jamesdpeters.SequenceGame.game.card.Deck;
-import com.jamesdpeters.SequenceGame.game.player.Player;
+import com.jamesdpeters.SequenceGame.card.Card;
+import com.jamesdpeters.SequenceGame.card.Deck;
+import com.jamesdpeters.SequenceGame.player.Player;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;

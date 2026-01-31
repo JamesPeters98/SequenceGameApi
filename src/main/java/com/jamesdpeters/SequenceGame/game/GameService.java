@@ -3,7 +3,7 @@ package com.jamesdpeters.SequenceGame.game;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFullException;
-import com.jamesdpeters.SequenceGame.game.player.Player;
+import com.jamesdpeters.SequenceGame.player.Player;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;

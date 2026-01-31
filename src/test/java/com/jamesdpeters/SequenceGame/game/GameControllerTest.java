@@ -2,7 +2,7 @@ package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
-import com.jamesdpeters.SequenceGame.game.player.Player;
+import com.jamesdpeters.SequenceGame.player.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
