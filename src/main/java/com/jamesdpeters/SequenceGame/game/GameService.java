@@ -68,13 +68,15 @@ public class GameService {
 	}
 
 	/**
-	 * Allows a new player to join an existing game identified by its UUID. If the game does not exist
-	 * or has already reached the maximum number of players, an appropriate exception is thrown.
+	 * Joins a player to an existing game identified by its unique identifier.
+	 * If the game does not exist, a {@link GameNotFoundException} is thrown.
+	 * If the game already has the maximum allowed number of players,
+	 * a {@link GameAlreadyFullException} is thrown.
 	 *
-	 * @param gameUuid the unique identifier of the game the player wants to join; must not be null
-	 * @return the newly created player who joined the game
-	 * @throws IllegalArgumentException if no game is found with the provided UUID
-	 * @throws IllegalStateException if the game has already reached the maximum number of players
+	 * @param gameUuid the unique identifier of the game to join; must not be null
+	 * @return the newly created {@link Player} instance for the game
+	 * @throws GameNotFoundException if no game exists with the given UUID
+	 * @throws GameAlreadyFullException if the game has already reached its maximum number of players
 	 */
 	public Player joinGame(UUID gameUuid) {
 		var game = gameRepository.findByUuid(gameUuid);
