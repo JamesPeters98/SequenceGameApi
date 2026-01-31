@@ -168,4 +168,17 @@ class GameControllerTest {
 		assertEquals(uuid.toString(), problemDetail.getProperties().get("uuid"));
 	}
 
+	@Test
+	void validBoardStateReturned() {
+		var uuid = UUID.randomUUID();
+		var gameDetails = restTestClient.get().uri("/game/{gameUuid}", uuid)
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GameResponse.class)
+						.getResponseBody();
+
+		assertNotNull(gameDetails);
+		assertNotNull(gameDetails.board());
+	}
+
 }

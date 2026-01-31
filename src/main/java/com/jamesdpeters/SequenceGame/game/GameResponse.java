@@ -11,7 +11,8 @@ public record GameResponse(
 				int playerCount,
 				Game.Status status,
 				List<UUID> players,
-				UUID host
+				UUID host,
+				BoardResponse board
 ) {
 	static GameResponse from(@NonNull Game game) {
 		return new GameResponse(game.getUuid(),
@@ -19,6 +20,7 @@ public record GameResponse(
 						game.getPlayers().size(),
 						game.getStatus(),
 						game.getPlayers(),
-						game.getHost().publicUuid());
+						game.getHost().publicUuid(),
+						BoardResponse.from(game.getBoard()));
 	}
 }

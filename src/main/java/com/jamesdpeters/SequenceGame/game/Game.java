@@ -1,5 +1,6 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.board.Board;
 import com.jamesdpeters.SequenceGame.card.Card;
 import com.jamesdpeters.SequenceGame.card.Deck;
 import com.jamesdpeters.SequenceGame.player.Player;
@@ -21,6 +22,7 @@ public class Game {
 	private final UUID uuid;
 	private final Instant createdDate = Instant.now();
 	private final Deck deck = new Deck();
+	private final Board board = new Board();
 	private final Map<UUID, List<Card>> playerHands = new HashMap<>();
 	@Getter(AccessLevel.NONE) private final List<UUID> players = new ArrayList<>();
 

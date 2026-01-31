@@ -1,10 +1,11 @@
 package com.jamesdpeters.SequenceGame.board;
 
 import com.jamesdpeters.SequenceGame.card.Card;
+import lombok.Getter;
 
 public class Board {
 
-	private final BoardSpace[][] boardSpaces;
+	@Getter private final BoardSpace[][] boardSpaces;
 
 	public Board() {
 		this(BoardLayout.DEFAULT_LAYOUT);
@@ -38,6 +39,5 @@ public class Board {
 		}
 		return boardSpace;
 	}
-
 
 }
