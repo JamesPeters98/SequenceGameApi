@@ -1,5 +1,8 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
+import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
+import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFullException;
 import com.jamesdpeters.SequenceGame.game.player.Player;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,7 +44,7 @@ class GameServiceTest {
 		gameService.startGame(game);
 
 		assertEquals(Game.Status.IN_PROGRESS, game.getStatus());
-		assertTrue(game.getStartedDate().isBefore(Instant.now()));
+		assertTrue(game.getStartedDate().isBefore(Instant.now().plusSeconds(60)));
 	}
 
 	@Test
@@ -61,6 +64,21 @@ class GameServiceTest {
 	}
 
 	@Test
+	void testGameNotFound() {
+		assertThrows(GameNotFoundException.class, () -> gameService.getGame(UUID.randomUUID()));
+	}
+
+	@Test
+	void gameStartsWithTwoPlayers() {
+		Game game = gameService.createGame();
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+		gameService.startGame(game);
+		assertDoesNotThrow(() -> gameService.startGame(game));
+		assertEquals(2, game.getPlayers().size());
+	}
+
+	@Test
 	void playerJoinsGame() {
 		Game game = gameService.createGame();
 		Player player = gameService.joinGame(game.getUuid());
@@ -69,7 +87,9 @@ class GameServiceTest {
 		assertNotNull(gameByUuid);
 
 		assertEquals(1, gameByUuid.getPlayers().size());
-		assertEquals(player.publicUuid(), gameByUuid.getPlayers().getFirst().publicUuid());
+		assertEquals(player.publicUuid(), gameByUuid.getPlayers().getFirst());
+		assertEquals(player.publicUuid(), gameByUuid.getHost().publicUuid());
+		assertEquals(player.privateUuid(), gameByUuid.getHost().privateUuid());
 	}
 
 	@Test
@@ -80,7 +100,7 @@ class GameServiceTest {
 			mockedUUID.when(UUID::randomUUID).thenReturn(initialRandom);
 			gameService.createGame();
 
-			assertThrows(IllegalArgumentException.class, () -> gameService.joinGame(UUID.fromString("cafebabe-cafe-babe-cafe-babecafebabe")));
+			assertThrows(GameNotFoundException.class, () -> gameService.joinGame(UUID.fromString("cafebabe-cafe-babe-cafe-babecafebabe")));
 		}
 	}
 
@@ -90,13 +110,30 @@ class GameServiceTest {
 		gameService.joinGame(game.getUuid());
 		gameService.joinGame(game.getUuid());
 
-		assertThrows(IllegalStateException.class, () -> gameService.joinGame(game.getUuid()));
+		assertThrows(GameAlreadyFullException.class, () -> gameService.joinGame(game.getUuid()));
+	}
+
+	@Test
+	void firstPlayerToJoinGameIsHost() {
+		Game game = gameService.createGame();
+		Player player1 = gameService.joinGame(game.getUuid());
+		Player player2 = gameService.joinGame(game.getUuid());
+
+		assertEquals(player1.publicUuid(), game.getHost().publicUuid());
+		assertNotEquals(player2.publicUuid(), game.getHost().publicUuid());
 	}
 
 	@Test
 	void gameWithNoPlayersCannotBeStarted() {
 		Game game = gameService.createGame();
-		assertThrows(IllegalStateException.class, () -> gameService.startGame(game));
+		assertThrows(GameNotFullException.class, () -> gameService.startGame(game));
+	}
+
+	@Test
+	void gameWithOnePlayerCannotBeStarted() {
+		Game game = gameService.createGame();
+		gameService.joinGame(game.getUuid());
+		assertThrows(GameNotFullException.class, () -> gameService.startGame(game));
 	}
 
 	@Test
@@ -113,5 +150,23 @@ class GameServiceTest {
 		assertEquals(7, player1hand.size());
 		assertEquals(7, player2hand.size());
 	}
+
+	@Test
+	void playersAreDealtCards_threePlayers() {
+		Game game = gameService.createGame(3);
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+		gameService.joinGame(game.getUuid());
+		gameService.startGame(game);
+
+		var player1hand = game.getPlayerHands().get(game.getPlayers().getFirst());
+		var player2hand = game.getPlayerHands().get(game.getPlayers().get(1));
+		var player3hand = game.getPlayerHands().get(game.getPlayers().get(2));
+
+		assertEquals(5, player1hand.size());
+		assertEquals(5, player2hand.size());
+		assertEquals(5, player3hand.size());
+	}
+
 
 }

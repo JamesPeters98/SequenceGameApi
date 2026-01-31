@@ -1,5 +1,8 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
+import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
+import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFullException;
 import com.jamesdpeters.SequenceGame.game.player.Player;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
@@ -19,9 +22,20 @@ public class GameService {
 	 *
 	 * @return the newly created and saved game instance
 	 */
-	public Game createGame() {
-		var game = new Game();
+	public Game createGame(int maxPlayers) {
+		var game = new Game(maxPlayers);
 		return gameRepository.save(game);
+	}
+
+
+	/**
+	 * Creates a new game instance, initialises its default properties,
+	 * and saves it to the game repository.
+	 *
+	 * @return the newly created and saved game instance
+	 */
+	public Game createGame() {
+		return createGame(2);
 	}
 
 	/**
@@ -32,7 +46,7 @@ public class GameService {
 	 */
 	public void startGame(@NonNull Game game) {
 		if (game.getPlayers().isEmpty() || game.getPlayers().size() < 2) {
-			throw new IllegalStateException("Game must have at least two players");
+			throw new GameNotFullException(game.getUuid());
 		}
 		game.dealCards();
 		game.setStatus(Game.Status.IN_PROGRESS);
@@ -46,7 +60,11 @@ public class GameService {
 	 * @return the game associated with the specified UUID, or null if no such game exists
 	 */
 	public Game getGame(@NonNull UUID uuid) {
-		return gameRepository.findByUuid(uuid);
+		var game = gameRepository.findByUuid(uuid);
+		if (game == null) {
+			throw new GameNotFoundException(uuid);
+		}
+		return game;
 	}
 
 	/**
@@ -61,14 +79,14 @@ public class GameService {
 	public Player joinGame(UUID gameUuid) {
 		var game = gameRepository.findByUuid(gameUuid);
 		if (game == null) {
-			throw new IllegalArgumentException("Game not found with UUID: " + gameUuid);
+			throw new GameNotFoundException(gameUuid);
 		}
 		if (game.getPlayers().size() >= game.getMaxPlayers()) {
-			throw new IllegalStateException("Game already has maximum number of players");
+			throw new GameAlreadyFullException(gameUuid, game.getMaxPlayers());
 		}
 
 		var player = new Player(UUID.randomUUID(), UUID.randomUUID());
-		game.getPlayers().add(player);
+		game.addPlayer(player);
 		return player;
 	}
 
