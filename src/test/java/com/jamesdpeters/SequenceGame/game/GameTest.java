@@ -282,7 +282,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 11));
 				setupGame(cards);
 				var player2team = game.getTeams().get(player2.publicUuid());
-				setAllChips(game.getBoard(), player2team);
+				game.getBoard().setChip(1, 1, player2team);
 
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
@@ -309,7 +309,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 11));
 				setupGame(cards);
 				var player1team = game.getTeams().get(player1.publicUuid());
-				setAllChips(game.getBoard(), player1team);
+				game.getBoard().setChip(1, 1, player1team);
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
 				var move = new MoveAction(1, 1, card);
