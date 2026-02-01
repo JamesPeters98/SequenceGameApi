@@ -6,7 +6,6 @@ import com.jamesdpeters.SequenceGame.game.exceptions.GameMoveException;
 import com.jamesdpeters.SequenceGame.player.Player;
 import lombok.AccessLevel;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +22,6 @@ public class GamePlayerContainer {
 	@Getter(AccessLevel.NONE) private final List<UUID> players = new ArrayList<>();
 
 	@Getter private Player host;
-	@Setter
 	@Getter private UUID currentPlayerTurn;
 
 
@@ -69,20 +67,20 @@ public class GamePlayerContainer {
 		return teams.get(publicUuid);
 	}
 
-	public UUID getPublicPlayerUuid(UUID privatePlayerUuid) {
-		return privateToPublicPlayerMap.get(privatePlayerUuid);
-	}
-
-	public boolean isHost(UUID playerUuid) {
-		return host.publicUuid().equals(playerUuid);
-	}
-
 	public boolean isCurrentPlayerTurn(UUID playerUuid) {
 		return currentPlayerTurn.equals(playerUuid);
 	}
 
 	public UUID nextPlayerTurn() {
 		return players.get((players.indexOf(currentPlayerTurn) + 1) % players.size());
+	}
+
+	public void setCurrentPlayerTurn(Player player) {
+		currentPlayerTurn = player.publicUuid();
+	}
+
+	public void setCurrentPlayerTurn(UUID playerUuid) {
+		currentPlayerTurn = playerUuid;
 	}
 
 	public List<UUID> getPlayers() {

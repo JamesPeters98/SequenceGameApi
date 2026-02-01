@@ -172,7 +172,7 @@ public class Game {
 	}
 
 	private static void doTwoEyedJackAction(BoardSpace boardSpace, ChipColour teamChip) {
-		if (boardSpace.isPartOfSequence() || boardSpace.getChip() != null) {
+		if (boardSpace.getChip() != null) {
 			throw new GameMoveException(GameMoveException.GameMoveError.POSITION_OCCUPIED);
 		}
 		// Do action
