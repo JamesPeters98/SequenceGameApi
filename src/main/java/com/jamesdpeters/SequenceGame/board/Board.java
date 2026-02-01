@@ -6,7 +6,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class Board {
@@ -33,12 +32,9 @@ public class Board {
 		return boardSpaces[x][y];
 	}
 
-	public List<BoardSpace> getBoardSpacesList() {
-		var spaces = new ArrayList<BoardSpace>();
-		for (BoardSpace[] rows : boardSpaces) {
-			Collections.addAll(spaces, rows);
-		}
-		return spaces;
+	public void setChip(int x, int y, ChipColour chipColour) {
+		boardSpaces[x][y].setChip(chipColour);
+		checkSequences();
 	}
 
 	public boolean isDeadCard(Card card) {
@@ -76,6 +72,10 @@ public class Board {
 			}
 		}
 		return boardSpace;
+	}
+
+	protected void checkSequences() {
+
 	}
 
 }

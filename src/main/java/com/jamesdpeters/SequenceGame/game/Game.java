@@ -1,7 +1,6 @@
 package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.board.Board;
-import com.jamesdpeters.SequenceGame.board.BoardSpace;
 import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.card.Card;
 import com.jamesdpeters.SequenceGame.card.Deck;
@@ -149,9 +148,9 @@ public class Game {
 		boolean shouldDrawCard = true;
 
 		if (card.isOneEyedJack()) {
-			doOneEyedJackAction(boardSpace, teamChip);
+			doOneEyedJackAction(board, action.row(), action.column(), teamChip);
 		} else if (card.isTwoEyedJack()) {
-			doTwoEyedJackAction(boardSpace, teamChip);
+			doTwoEyedJackAction(board, action.row(), action.column(), teamChip);
 		} else {
 			if (boardSpace.getChip() != null) {
 				throw new GameMoveException(GameMoveException.GameMoveError.POSITION_OCCUPIED);
@@ -161,7 +160,7 @@ public class Game {
 				nextPlayer = publicPlayerUUID;
 				shouldDrawCard = false;
 			} else {
-				boardSpace.setChip(teamChip);
+				board.setChip(action.row(), action.column(), teamChip);
 			}
 		}
 
@@ -171,15 +170,17 @@ public class Game {
 		}
 	}
 
-	private static void doTwoEyedJackAction(BoardSpace boardSpace, ChipColour teamChip) {
+	private static void doTwoEyedJackAction(Board board, int row, int column, ChipColour teamChip) {
+		var boardSpace = board.getSpace(row, column);
 		if (boardSpace.getChip() != null) {
 			throw new GameMoveException(GameMoveException.GameMoveError.POSITION_OCCUPIED);
 		}
 		// Do action
-		boardSpace.setChip(teamChip);
+		board.setChip(row, column, teamChip);
 	}
 
-	private static void doOneEyedJackAction(BoardSpace boardSpace, ChipColour teamChip) {
+	private static void doOneEyedJackAction(Board board, int row, int column, ChipColour teamChip) {
+		var boardSpace = board.getSpace(row, column);
 		if (boardSpace.isPartOfSequence()) {
 			throw new GameMoveException(GameMoveException.GameMoveError.CANNOT_REMOVE_SEQUENCE);
 		}
@@ -190,7 +191,7 @@ public class Game {
 			throw new GameMoveException(GameMoveException.GameMoveError.CANNOT_REMOVE_OWN_CHIP);
 		}
 		// Do action
-		boardSpace.setChip(null);
+		board.setChip(row, column, null);
 	}
 
 	private void validateMove(UUID publicPlayerUUID, MoveAction action) {

@@ -28,9 +28,9 @@ class BoardTest {
 	void testIsDeadCard() {
 		Board board = new Board();
 		Card card = new Card(Card.Suit.SPADES, 1);
-		for (BoardSpace[] row : board.getBoardSpaces()) {
-			for (BoardSpace boardSpace : row) {
-				boardSpace.setChip(ChipColour.RED);
+		for (int row = 0; row < board.getRows(); row++) {
+			for (int col = 0; col < board.getColumn(row).length; col++) {
+				board.setChip(row, col, ChipColour.RED);
 			}
 		}
 		assertTrue(board.isDeadCard(card));
@@ -52,11 +52,12 @@ class BoardTest {
 	}
 
 	private void setOneCardChip(Board board, Card card) {
-		for (BoardSpace[] row : board.getBoardSpaces()) {
-			for (BoardSpace boardSpace : row) {
+		for (int row = 0; row < board.getRows(); row++) {
+			for (int col = 0; col < board.getColumn(row).length; col++) {
+				var boardSpace = board.getSpace(row, col);
 				if (boardSpace.getCard() != null) {
 					if (card == boardSpace.getCard()) {
-						boardSpace.setChip(ChipColour.RED);
+						board.setChip(row, col, ChipColour.RED);
 						return;
 					}
 				}

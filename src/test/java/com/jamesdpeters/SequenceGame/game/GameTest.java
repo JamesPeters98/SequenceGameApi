@@ -1,5 +1,7 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.board.Board;
+import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.card.Card;
 import com.jamesdpeters.SequenceGame.card.Deck;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameMoveException;
@@ -231,9 +233,7 @@ class GameTest {
 			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
 			setupGame(cards);
 			var player2team = game.getTeams().get(player2.publicUuid());
-			for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-				boardSpace.setChip(player2team);
-			}
+			setAllChips(game.getBoard(), player2team);
 
 			var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 			var card = cardsInHand.getFirst();
@@ -249,13 +249,10 @@ class GameTest {
 
 			// Set all spaces to be occupied by player 2
 			var player2team = game.getTeams().get(player2.publicUuid());
-			for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-				boardSpace.setChip(player2team);
-			}
+			setAllChips(game.getBoard(), player2team);
 
 			// Open up a space that's available to play
-			var firstSpace = game.getBoard().getBoardSpaces()[1][1];
-			firstSpace.setChip(null);
+			game.getBoard().setChip(1, 1, null);
 
 			var hand = game.getPlayerHands().get(player1.publicUuid());
 			hand.clear();
@@ -285,9 +282,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 11));
 				setupGame(cards);
 				var player2team = game.getTeams().get(player2.publicUuid());
-				for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-					boardSpace.setChip(player2team);
-				}
+				setAllChips(game.getBoard(), player2team);
 
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
@@ -314,9 +309,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 11));
 				setupGame(cards);
 				var player1team = game.getTeams().get(player1.publicUuid());
-				for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-					boardSpace.setChip(player1team);
-				}
+				setAllChips(game.getBoard(), player1team);
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
 				var move = new MoveAction(1, 1, card);
@@ -329,10 +322,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 11));
 				setupGame(cards);
 				var player1team = game.getTeams().get(player1.publicUuid());
-				for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-					boardSpace.setChip(player1team);
-					boardSpace.setPartOfSequence(true);
-				}
+				setAllChipsWithSequence(game.getBoard(), player1team);
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
 				var move = new MoveAction(1, 1, card);
@@ -359,9 +349,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.HEARTS, 11));
 				setupGame(cards);
 				var player2team = game.getTeams().get(player2.publicUuid());
-				for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-					boardSpace.setChip(player2team);
-				}
+				setAllChips(game.getBoard(), player2team);
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
 				var move = new MoveAction(1, 1, card);
@@ -374,10 +362,7 @@ class GameTest {
 				var cards = Collections.nCopies(102, new Card(Card.Suit.HEARTS, 11));
 				setupGame(cards);
 				var player2team = game.getTeams().get(player2.publicUuid());
-				for (var boardSpace : game.getBoard().getBoardSpacesList()) {
-					boardSpace.setChip(player2team);
-					boardSpace.setPartOfSequence(true);
-				}
+				setAllChipsWithSequence(game.getBoard(), player2team);
 				var cardsInHand = game.getPlayerHands().get(player1.publicUuid());
 				var card = cardsInHand.getFirst();
 				var move = new MoveAction(1, 1, card);
@@ -386,6 +371,23 @@ class GameTest {
 			}
 		}
 
+	}
+
+	private static void setAllChips(Board board, ChipColour chipColour) {
+		for (int row = 0; row < board.getRows(); row++) {
+			for (int col = 0; col < board.getColumn(row).length; col++) {
+				board.setChip(row, col, chipColour);
+			}
+		}
+	}
+
+	private static void setAllChipsWithSequence(Board board, ChipColour chipColour) {
+		for (int row = 0; row < board.getRows(); row++) {
+			for (int col = 0; col < board.getColumn(row).length; col++) {
+				board.setChip(row, col, chipColour);
+				board.getSpace(row, col).setPartOfSequence(true);
+			}
+		}
 	}
 
 }
