@@ -46,6 +46,10 @@ public class GamePlayerContainer {
 		return playerHands.get(publicUuid);
 	}
 
+	public UUID getPublicUuid(UUID privateUuid) {
+		return privateToPublicPlayerMap.get(privateUuid);
+	}
+
 	public Card playCard(UUID publicUuid, Card card) {
 		var playerHand = playerHands.get(publicUuid);
 		if (playerHand == null) {

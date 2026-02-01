@@ -51,6 +51,72 @@ class BoardTest {
 		assertFalse(board.isDeadCard(card));
 	}
 
+	@Test
+	void testDoesFiveInARowResultInAllChipsBeingPartOfSequence() {
+		Board board = new Board();
+		for (int i = 0; i < 5; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		for (int i = 0; i < 5; i++) {
+			assertTrue(board.getSpace(i, 0).isPartOfSequence());
+		}
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testDoesFiveInAColumnResultInAllChipsBeingPartOfSequence() {
+		Board board = new Board();
+		for (int i = 0; i < 5; i++) {
+			board.setChip(0, i, ChipColour.RED);
+		}
+		for (int i = 0; i < 5; i++) {
+			assertTrue(board.getSpace(0, i).isPartOfSequence());
+		}
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testDoesFiveInADiagonalResultInAllChipsBeingPartOfSequence() {
+		Board board = new Board();
+		for (int i = 0; i < 5; i++) {
+			board.setChip(i, i, ChipColour.RED);
+		}
+		for (int i = 0; i < 5; i++) {
+			assertTrue(board.getSpace(i, i).isPartOfSequence());
+		}
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testDoesFiveInADiagonalResultInAllChipsBeingPartOfSequenceReverse() {
+		Board board = new Board();
+		for (int i = 0; i < 5; i++) {
+			board.setChip(i, 4 - i, ChipColour.RED);
+		}
+		for (int i = 0; i < 5; i++) {
+			assertTrue(board.getSpace(i, 4 - i).isPartOfSequence());
+		}
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testDoesFourInARowNotCompleteSequence() {
+		Board board = new Board();
+		for (int i = 0; i < 4; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		assertEquals(0, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testDoesTenInARowCompleteTwoSequence() {
+		Board board = new Board();
+		for (int i = 0; i < 10; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		assertEquals(2, board.getCompletedSequences(ChipColour.RED));
+	}
+
 	private void setOneCardChip(Board board, Card card) {
 		for (int row = 0; row < board.getRows(); row++) {
 			for (int col = 0; col < board.getColumn(row).length; col++) {

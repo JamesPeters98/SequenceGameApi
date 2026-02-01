@@ -25,7 +25,8 @@ public class Game {
 
 	private final int maxPlayers;
 	private Instant startedDate;
-
+	private ChipColour winner = null;
+	private final int winningSequenceLength;
 
 	@Setter private Status status;
 
@@ -42,6 +43,7 @@ public class Game {
 		this.uuid = UUID.randomUUID();
 		this.status = Status.NOT_STARTED;
 		this.deck = deck;
+		this.winningSequenceLength = 2;
 	}
 
 	public UUID getCurrentPlayerTurn() {
@@ -162,6 +164,12 @@ public class Game {
 			} else {
 				board.setChip(action.row(), action.column(), teamChip);
 			}
+		}
+
+		if (board.getCompletedSequences(teamChip) >= winningSequenceLength) {
+			winner = teamChip;
+			status = Status.COMPLETED;
+			return;
 		}
 
 		playerContainer.setCurrentPlayerTurn(nextPlayer);

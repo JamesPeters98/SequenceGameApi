@@ -275,6 +275,19 @@ class GameTest {
 			assertNotNull(game.getBoard().getSpace(space.getLeft(), space.getRight()).getChip());
 		}
 
+		@Test
+		void doesGameEndWhenSequencesComplete() {
+			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
+			setupGame(cards);
+
+			for (int i = 1; i < 9; i++) {
+				game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(0, i, new Card(Card.Suit.SPADES, 1)));
+				game.getPlayerContainer().setCurrentPlayerTurn(player1);
+			}
+			assertEquals(Game.Status.COMPLETED, game.getStatus());
+			assertEquals(ChipColour.RED, game.getWinner());
+		}
+
 		@Nested
 		class OneEyedJackTests {
 			@Test

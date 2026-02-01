@@ -6,8 +6,9 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Board {
 
@@ -16,6 +17,8 @@ public class Board {
 
 	@Getter private final BoardSpace[][] boardSpaces;
 	private final int sequenceLength;
+
+	private final Map<ChipColour, Integer> completedSequences = new HashMap<>();
 
 	public Board() {
 		this(BoardLayout.DEFAULT_LAYOUT);
@@ -43,8 +46,11 @@ public class Board {
 	}
 
 	public void setChip(int x, int y, ChipColour chipColour) {
-		boardSpaces[x][y].setChip(chipColour);
-		checkSequences(x, y);
+		var space = boardSpaces[x][y];
+		if (space.getCard() != null) {
+			boardSpaces[x][y].setChip(chipColour);
+			checkSequences(x, y);
+		}
 	}
 
 	public boolean isDeadCard(Card card) {
@@ -71,6 +77,9 @@ public class Board {
 		return spaces;
 	}
 
+	public int getCompletedSequences(ChipColour chipColour) {
+		return completedSequences.getOrDefault(chipColour, 0);
+	}
 
 	private BoardSpace[][] fromBoardLayout(String[][] layout) {
 		var boardSpace = new BoardSpace[layout.length][];
@@ -90,51 +99,39 @@ public class Board {
 			return;
 		}
 
-		for (int[] direction : DIRECTIONS) {
-			var spaces = collectRun(row, col, direction[0], direction[1], chip);
-			if (spaces.size() >= sequenceLength) {
-				for (var space : spaces) {
-					space.setPartOfSequence(true);
-				}
+		for (int[] dir : DIRECTIONS) {
+			var run = collectRun(row, col, dir[0], dir[1], chip);
+			if (run.size() >= sequenceLength) {
+				run.forEach(space -> space.setPartOfSequence(true));
+			}
+			// Only an exact sequence of sequnceLength counts as a completed sequence
+			if (run.size() % sequenceLength == 0) {
+				completedSequences.merge(chip, 1, Integer::sum);
 			}
 		}
 	}
 
 	private List<BoardSpace> collectRun(int row, int col, int dRow, int dCol, ChipColour chip) {
 		var spaces = new ArrayList<BoardSpace>();
-		// Walk in the negative direction
-		int r = row - dRow;
-		int c = col - dCol;
-		while (inBounds(r, c) && matchesChip(r, c, chip)) {
-			spaces.add(boardSpaces[r][c]);
-			r -= dRow;
-			c -= dCol;
-		}
-		Collections.reverse(spaces);
-		// Add the placed space
+		walkAndCollect(spaces, row, col, -dRow, -dCol, chip);
 		spaces.add(boardSpaces[row][col]);
-		// Walk in the positive direction
-		r = row + dRow;
-		c = col + dCol;
-		while (inBounds(r, c) && matchesChip(r, c, chip)) {
+		walkAndCollect(spaces, row, col, dRow, dCol, chip);
+		return spaces;
+	}
+
+	private void walkAndCollect(List<BoardSpace> spaces, int row, int col, int dRow, int dCol, ChipColour chip) {
+		int r = row + dRow;
+		int c = col + dCol;
+		while (r >= 0 && r < boardSpaces.length && c >= 0 && c < boardSpaces[r].length && matchesChip(r, c, chip)) {
 			spaces.add(boardSpaces[r][c]);
 			r += dRow;
 			c += dCol;
 		}
-		return spaces;
 	}
 
 	private boolean matchesChip(int row, int col, ChipColour chip) {
 		var space = boardSpaces[row][col];
-		// Corners (null card) are wildcards and count for any colour
-		if (space.getCard() == null) {
-			return true;
-		}
-		return space.getChip() == chip;
-	}
-
-	private boolean inBounds(int row, int col) {
-		return row >= 0 && row < boardSpaces.length && col >= 0 && col < boardSpaces[row].length;
+		return space.getCard() == null || space.getChip() == chip;
 	}
 
 }
