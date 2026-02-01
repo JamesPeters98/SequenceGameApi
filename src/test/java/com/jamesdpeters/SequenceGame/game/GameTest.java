@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -286,6 +287,19 @@ class GameTest {
 			}
 			assertEquals(Game.Status.COMPLETED, game.getStatus());
 			assertEquals(ChipColour.RED, game.getWinner());
+		}
+
+		@Test
+		void testCardRemovedFromDeckAndNewOneDrawn() {
+			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
+			setupGame(cards);
+			var deckSize = game.getDeck().size();
+
+			game.getPlayerHands().put(player1.publicUuid(), new ArrayList<>(Collections.singletonList(new Card(Card.Suit.HEARTS, 11))));
+			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 1, new Card(Card.Suit.HEARTS, 11)));
+			assertEquals(deckSize - 1, game.getDeck().size());
+			assertEquals(1, game.getDeck().getDiscardPile().size());
+			assertEquals(1, game.getPlayerHands().get(player1.publicUuid()).size());
 		}
 
 		@Nested

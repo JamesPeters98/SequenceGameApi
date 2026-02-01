@@ -18,7 +18,10 @@ public class Board {
 	@Getter private final BoardSpace[][] boardSpaces;
 	private final int sequenceLength;
 
+	@Getter
 	private final Map<ChipColour, Integer> completedSequences = new HashMap<>();
+	@Getter
+	private final Map<ChipColour, Integer> chipsPlaced = new HashMap<>();
 
 	public Board() {
 		this(BoardLayout.DEFAULT_LAYOUT);
@@ -48,6 +51,11 @@ public class Board {
 	public void setChip(int x, int y, ChipColour chipColour) {
 		var space = boardSpaces[x][y];
 		if (space.getCard() != null) {
+			var previousChip = space.getChip();
+			if (previousChip != null) {
+				chipsPlaced.merge(previousChip, -1, Integer::sum);
+			}
+			if (chipColour != null) chipsPlaced.merge(chipColour, 1, Integer::sum);
 			boardSpaces[x][y].setChip(chipColour);
 			checkSequences(x, y);
 		}

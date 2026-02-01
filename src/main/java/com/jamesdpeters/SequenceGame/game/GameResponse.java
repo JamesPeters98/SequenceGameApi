@@ -1,6 +1,8 @@
 package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.board.ChipColour;
+import com.jamesdpeters.SequenceGame.card.Card;
+import com.jamesdpeters.SequenceGame.player.Player;
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
@@ -16,9 +18,10 @@ public record GameResponse(
 				Map<UUID, ChipColour> playerTeams,
 				UUID host,
 				BoardResponse board,
-				UUID currentPlayerTurn
+				UUID currentPlayerTurn,
+				List<Card> playerHand
 ) {
-	static GameResponse from(@NonNull Game game) {
+	static GameResponse from(@NonNull Game game, @NonNull UUID privatePlayerUuid) {
 		return new GameResponse(game.getUuid(),
 						game.getMaxPlayers(),
 						game.getPlayers().size(),
@@ -27,6 +30,7 @@ public record GameResponse(
 						game.getTeams(),
 						game.getHost().publicUuid(),
 						BoardResponse.from(game.getBoard()),
-						game.getCurrentPlayerTurn());
+						game.getCurrentPlayerTurn(),
+						game.getPlayerHands().get(privatePlayerUuid));
 	}
 }

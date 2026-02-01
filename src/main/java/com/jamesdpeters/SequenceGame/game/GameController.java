@@ -1,5 +1,6 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.game.exceptions.UserDoesNotHavePermissionException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -29,12 +32,12 @@ public class GameController {
 
 	@PostMapping
 	@Operation(summary = "Create a new game", description = "Creates a new game and automatically adds the creator as the host")
-	public ResponseEntity<GameCreatedResponse> createGame() {
+	public ResponseEntity<GameJoinedResponse> createGame() {
 		log.info("Creating new game");
 		var game = gameService.createGame();
 		var host = gameService.joinGame(game.getUuid());
 		log.info("Game created with UUID: {}", game.getUuid());
-		return ResponseEntity.ok(new GameCreatedResponse(game.getUuid(), host.privateUuid()));
+		return ResponseEntity.ok(GameJoinedResponse.from(game.getUuid(), host));
 	}
 
 	@PostMapping("/join/{gameUuid}")
@@ -49,14 +52,19 @@ public class GameController {
 		return ResponseEntity.ok(GameJoinedResponse.from(gameUuid, player));
 	}
 
-	@GetMapping("/{gameUuid}")
+	@GetMapping("/{gameUuid}/{playerUuid}")
 	@Operation(summary = "Get game details", description = "Returns the current state of a game including players, status, and board")
 	@ApiResponse(responseCode = "200", description = "Game details retrieved")
 	@ApiResponse(responseCode = "404", description = "Game not found")
-	public ResponseEntity<GameResponse> getGameDetails(@PathVariable UUID gameUuid) {
-		log.info("Getting game details for: {}", gameUuid);
+	public ResponseEntity<GameResponse> getGameDetails(@PathVariable UUID gameUuid, @PathVariable @NonNull UUID playerUuid) {
+		log.debug("Getting game details for: {}", gameUuid);
 		var game = gameService.getGame(gameUuid);
-		return ResponseEntity.ok(GameResponse.from(game));
+		var publicPlayerUuid = game.getPlayerContainer().getPublicUuid(playerUuid);
+		if (publicPlayerUuid == null) {
+			log.warn("Unauthorized hand access for game: {} by user: {}", gameUuid, playerUuid);
+			throw new UserDoesNotHavePermissionException(playerUuid);
+		}
+		return ResponseEntity.ok(GameResponse.from(game, publicPlayerUuid));
 	}
 
 	@PostMapping("/{gameUuid}/start/{hostUuid}")
@@ -74,7 +82,7 @@ public class GameController {
 
 		gameService.startGame(game);
 		log.info("Game started: {}", gameUuid);
-		return ResponseEntity.ok(GameResponse.from(game));
+		return ResponseEntity.ok(GameResponse.from(game, game.getHost().publicUuid()));
 	}
 
 	@GetMapping("/{gameUuid}/player/{playerUuid}/hand")
@@ -83,7 +91,7 @@ public class GameController {
 	@ApiResponse(responseCode = "401", description = "Invalid player UUID")
 	@ApiResponse(responseCode = "404", description = "Game not found")
 	public ResponseEntity<GamePlayerHandResponse> getGamePlayerHand(@PathVariable UUID gameUuid, @PathVariable UUID playerUuid) {
-		log.info("Getting player hand for game: {}, player: {}", gameUuid, playerUuid);
+		log.debug("Getting player hand for game: {}, player: {}", gameUuid, playerUuid);
 		var game = gameService.getGame(gameUuid);
 		var publicPlayerUuid = game.getPlayerContainer().getPublicUuid(playerUuid);
 		if (publicPlayerUuid == null) {
@@ -109,7 +117,14 @@ public class GameController {
 		}
 		log.info("Player {} making move {}", publicPlayerUuid, moveAction);
 		game.doPlayerMoveAction(publicPlayerUuid, moveAction);
-		return ResponseEntity.ok(GameResponse.from(game));
+		return ResponseEntity.ok(GameResponse.from(game, playerUuid));
+	}
+
+	public record GameStatsResponse(UUID gameUuid, ChipColour winner, Map<ChipColour, Integer> sequences, Map<UUID, Integer> amountOfTurns, Map<ChipColour, Integer> chipsPlaced) { }
+
+	@GetMapping("/stats")
+	public ResponseEntity<List<GameStatsResponse>> getGameStats() {
+		return ResponseEntity.ok(gameService.getGames().stream().map(game -> new GameStatsResponse(game.getUuid(), game.getWinner(), game.getBoard().getCompletedSequences(), game.getAmountOfTurns(), game.getBoard().getChipsPlaced())).toList());
 	}
 
 }

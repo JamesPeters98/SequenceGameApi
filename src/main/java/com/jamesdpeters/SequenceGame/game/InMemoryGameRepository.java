@@ -3,6 +3,7 @@ package com.jamesdpeters.SequenceGame.game;
 import com.jamesdpeters.SequenceGame.player.Player;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,5 +32,10 @@ public class InMemoryGameRepository implements GameRepository {
 										.anyMatch(p -> p.equals(player.publicUuid())))
 						.toList();
 
+	}
+
+	@Override
+	public Collection<Game> findAll() {
+		return games.values();
 	}
 }

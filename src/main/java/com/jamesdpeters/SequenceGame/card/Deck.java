@@ -53,4 +53,7 @@ public class Deck extends ArrayDeque<Card> {
 		discardPile.clear();
 	}
 
+	public List<Card> getDiscardPile() {
+		return Collections.unmodifiableList(discardPile);
+	}
 }

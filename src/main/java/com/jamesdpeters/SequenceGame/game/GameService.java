@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.UUID;
 
 @Service
@@ -90,4 +91,7 @@ public class GameService {
 		return player;
 	}
 
+	public Collection<Game> getGames() {
+		return gameRepository.findAll();
+	}
 }

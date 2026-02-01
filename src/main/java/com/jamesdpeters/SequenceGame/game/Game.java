@@ -8,12 +8,15 @@ import com.jamesdpeters.SequenceGame.game.exceptions.GameMoveException;
 import com.jamesdpeters.SequenceGame.player.Player;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Getter
 public class Game {
 
@@ -22,6 +25,7 @@ public class Game {
 	private final Deck deck;
 	private final Board board = new Board();
 	private final GamePlayerContainer playerContainer = new GamePlayerContainer();
+	private final Map<UUID, Integer> amountOfTurns = new HashMap<>();
 
 	private final int maxPlayers;
 	private Instant startedDate;
@@ -90,6 +94,7 @@ public class Game {
 	protected void playCardAndDraw(UUID player, Card card) {
 		var playedCard = playerContainer.playCard(player, card);
 		if (playedCard != null) {
+			deck.discard(playedCard);
 			drawCard(player);
 		}
 	}
@@ -165,6 +170,8 @@ public class Game {
 			}
 		}
 
+		amountOfTurns.merge(publicPlayerUUID, 1, Integer::sum);
+
 		if (board.getCompletedSequences(teamChip) >= winningSequenceLength) {
 			winner = teamChip;
 			status = Status.COMPLETED;
@@ -172,7 +179,7 @@ public class Game {
 		}
 
 		playerContainer.setCurrentPlayerTurn(nextPlayer);
-		playCardAndDraw(nextPlayer, card);
+		playCardAndDraw(publicPlayerUUID, card);
 	}
 
 	private static void doTwoEyedJackAction(Board board, int row, int column, ChipColour teamChip) {

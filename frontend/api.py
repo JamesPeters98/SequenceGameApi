@@ -262,12 +262,27 @@ class SequenceGameAPI:
 
     def step(self, session: GameSession, current_private: UUID, card, space):
         move_action = MoveAction(row=space.row, column=space.col, card=card)
-        move_response = do_player_action.sync_detailed(
-            session.game_uuid,
-            current_private,
-            client=self.client,
-            body=move_action,
-        )
+        try:
+            move_response = do_player_action.sync_detailed(
+                session.game_uuid,
+                current_private,
+                client=self.client,
+                body=move_action,
+            )
+        except ValueError as exc:
+            raw_response = self.client.get_httpx_client().request(
+                "post",
+                f"/game/{session.game_uuid}/move/{current_private}",
+                json=move_action.to_dict(),
+                headers={"Content-Type": "application/json"},
+            )
+            detail = None
+            try:
+                payload = raw_response.json()
+                detail = payload.get("error") or payload.get("detail")
+            except ValueError:
+                detail = raw_response.text
+            raise RuntimeError(f"Move failed: {detail}") from exc
         if move_response.status_code != 200 or move_response.parsed is None:
             raise RuntimeError(f"Move failed with status {move_response.status_code}")
         session.game_state = move_response.parsed

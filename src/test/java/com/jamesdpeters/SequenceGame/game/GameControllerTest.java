@@ -47,12 +47,13 @@ class GameControllerTest {
 		var result = restTestClient.post().uri("/game")
 						.exchange()
 						.expectStatus().isOk()
-						.returnResult(GameCreatedResponse.class);
+						.returnResult(GameJoinedResponse.class);
 
 		var gameDto = result.getResponseBody();
 		assertNotNull(gameDto);
-		assertNotNull(gameDto.uuid());
-		assertNotNull(gameDto.hostPlayerUuid());
+		assertNotNull(gameDto.gameUuid());
+		assertNotNull(gameDto.publicPlayerUuid());
+		assertNotNull(gameDto.privatePlayerUuid());
 	}
 
 	@Test
