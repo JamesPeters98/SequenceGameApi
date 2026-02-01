@@ -53,4 +53,15 @@ public class GameController {
 		return ResponseEntity.ok(GameResponse.from(game));
 	}
 
+	@GetMapping("/{gameUuid}/player/{playerUuid}/hand")
+	public ResponseEntity<GamePlayerHandResponse> getGamePlayerHand(@PathVariable UUID gameUuid, @PathVariable UUID playerUuid) {
+		var game = gameService.getGame(gameUuid);
+		var publicPlayerUuid = game.getPlayerContainer().getPublicUuid(playerUuid);
+		if (publicPlayerUuid == null) {
+			throw new UserDoesNotHavePermissionException(playerUuid);
+		}
+		var hand = game.getPlayerContainer().getPlayerHands().get(playerUuid);
+		return ResponseEntity.ok(new GamePlayerHandResponse(hand));
+	}
+
 }
