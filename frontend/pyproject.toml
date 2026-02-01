@@ -1,0 +1,12 @@
+[project]
+name = "frontend"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "open-api-definition-client",
+]
+
+[tool.uv.sources]
+open-api-definition-client = { path = "open-api-definition-client" }

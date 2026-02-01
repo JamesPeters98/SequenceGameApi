@@ -160,7 +160,6 @@ public class Game {
 			if (board.isDeadCard(card)) {
 				// Do action
 				nextPlayer = publicPlayerUUID;
-				shouldDrawCard = false;
 			} else {
 				board.setChip(action.row(), action.column(), teamChip);
 			}
@@ -173,9 +172,7 @@ public class Game {
 		}
 
 		playerContainer.setCurrentPlayerTurn(nextPlayer);
-		if (shouldDrawCard) {
-			playCardAndDraw(nextPlayer, card);
-		}
+		playCardAndDraw(nextPlayer, card);
 	}
 
 	private static void doTwoEyedJackAction(Board board, int row, int column, ChipColour teamChip) {

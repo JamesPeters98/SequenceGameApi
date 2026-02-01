@@ -2,10 +2,12 @@ package com.jamesdpeters.SequenceGame.game.exceptions;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.ErrorResponseException;
 
+@Slf4j
 public class GameMoveException extends ErrorResponseException {
 
 	@Getter private final GameMoveError error;
@@ -16,6 +18,7 @@ public class GameMoveException extends ErrorResponseException {
 		problemDetail.setDetail(error.message);
 		problemDetail.setProperty("error", error.name());
 		this.error = error;
+		log.error("GameMoveException: {} {}", error.name(), error.message);
 		super(HttpStatus.FORBIDDEN, problemDetail, null);
 	}
 

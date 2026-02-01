@@ -1,8 +1,10 @@
 package com.jamesdpeters.SequenceGame.game;
 
+import com.jamesdpeters.SequenceGame.board.ChipColour;
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record GameResponse(
@@ -11,8 +13,10 @@ public record GameResponse(
 				int playerCount,
 				Game.Status status,
 				List<UUID> players,
+				Map<UUID, ChipColour> playerTeams,
 				UUID host,
-				BoardResponse board
+				BoardResponse board,
+				UUID currentPlayerTurn
 ) {
 	static GameResponse from(@NonNull Game game) {
 		return new GameResponse(game.getUuid(),
@@ -20,7 +24,9 @@ public record GameResponse(
 						game.getPlayers().size(),
 						game.getStatus(),
 						game.getPlayers(),
+						game.getTeams(),
 						game.getHost().publicUuid(),
-						BoardResponse.from(game.getBoard()));
+						BoardResponse.from(game.getBoard()),
+						game.getCurrentPlayerTurn());
 	}
 }
