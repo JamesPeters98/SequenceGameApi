@@ -117,6 +117,31 @@ class BoardTest {
 		assertEquals(2, board.getCompletedSequences(ChipColour.RED));
 	}
 
+	@Test
+	void testGapFillCreatesSingleSequenceInSixRun() {
+		Board board = new Board();
+		for (int i = 0; i < 3; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		for (int i = 4; i < 6; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		assertEquals(0, board.getCompletedSequences(ChipColour.RED));
+		board.setChip(3, 0, ChipColour.RED);
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
+	@Test
+	void testExtendingSequenceToSixDoesNotIncreaseCompletedSequences() {
+		Board board = new Board();
+		for (int i = 0; i < 5; i++) {
+			board.setChip(i, 0, ChipColour.RED);
+		}
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+		board.setChip(5, 0, ChipColour.RED);
+		assertEquals(1, board.getCompletedSequences(ChipColour.RED));
+	}
+
 	private void setOneCardChip(Board board, Card card) {
 		for (int row = 0; row < board.getRows(); row++) {
 			for (int col = 0; col < board.getColumn(row).length; col++) {

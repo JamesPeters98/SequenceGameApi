@@ -3,6 +3,7 @@ package com.jamesdpeters.SequenceGame.game;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
 import com.jamesdpeters.SequenceGame.player.Player;
+import com.jamesdpeters.SequenceGame.card.Card;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +14,13 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 @WebMvcTest(GameController.class)
@@ -69,11 +73,11 @@ class GameControllerTest {
 		var gameResult = restTestClient.post().uri("/game")
 						.exchange()
 						.expectStatus().isOk()
-						.returnResult(GameCreatedResponse.class);
+						.returnResult(GameJoinedResponse.class);
 
 		assertNotNull(gameResult.getResponseBody());
 
-		var result = restTestClient.post().uri("/game/join/{gameUuid}", gameResult.getResponseBody().uuid())
+		var result = restTestClient.post().uri("/game/join/{gameUuid}", gameResult.getResponseBody().gameUuid())
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameJoinedResponse.class);
@@ -123,24 +127,24 @@ class GameControllerTest {
 		var result = restTestClient.post().uri("/game")
 						.exchange()
 						.expectStatus().isOk()
-						.returnResult(GameCreatedResponse.class);
+						.returnResult(GameJoinedResponse.class);
 
 		var gameDto = result.getResponseBody();
 		assertNotNull(gameDto);
 
-		var gameDetails = restTestClient.get().uri("/game/{gameUuid}", gameDto.uuid())
+		var gameDetails = restTestClient.get().uri("/game/{gameUuid}/{playerUuid}", gameDto.gameUuid(), gameDto.privatePlayerUuid())
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameResponse.class);
 
 		assertNotNull(gameDetails.getResponseBody());
-		assertEquals(gameDto.uuid(), gameDetails.getResponseBody().uuid());
+		assertEquals(gameDto.gameUuid(), gameDetails.getResponseBody().uuid());
 
-		assertNotNull(gameDto.hostPlayerUuid());
+		assertNotNull(gameDto.privatePlayerUuid());
 		assertNotNull(gameDetails.getResponseBody().host());
 
 		assertEquals(player.publicUuid(), gameDetails.getResponseBody().host());
-		assertEquals(player.privateUuid(), gameDto.hostPlayerUuid());
+		assertEquals(player.privateUuid(), gameDto.privatePlayerUuid());
 	}
 
 	@Test
@@ -170,9 +174,22 @@ class GameControllerTest {
 	}
 
 	@Test
-	void validBoardStateReturned() {
+	void getGameDetailsWithoutPermission() {
 		var uuid = UUID.randomUUID();
-		var gameDetails = restTestClient.get().uri("/game/{gameUuid}", uuid)
+		var problemDetail = restTestClient.get().uri("/game/{gameUuid}/{playerUuid}", game.getUuid(), uuid)
+						.exchange()
+						.expectStatus().isUnauthorized()
+						.returnResult(ProblemDetail.class)
+						.getResponseBody();
+
+		assertNotNull(problemDetail);
+		assertNotNull(problemDetail.getProperties());
+		assertEquals(uuid.toString(), problemDetail.getProperties().get("uuid"));
+	}
+
+	@Test
+	void validBoardStateReturned() {
+		var gameDetails = restTestClient.get().uri("/game/{gameUuid}/{playerUuid}", game.getUuid(), player.privateUuid())
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameResponse.class)
@@ -181,5 +198,108 @@ class GameControllerTest {
 		assertNotNull(gameDetails);
 		assertNotNull(gameDetails.board());
 	}
+
+	@Test
+	void getGamePlayerHand() {
+		var card = new Card(Card.Suit.SPADES, 1);
+		game.getPlayerHands().put(player.publicUuid(), new java.util.ArrayList<>(List.of(card)));
+
+		var response = restTestClient.get().uri("/game/{gameUuid}/player/{playerUuid}/hand", game.getUuid(), player.privateUuid())
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GamePlayerHandResponse.class)
+						.getResponseBody();
+
+		assertNotNull(response);
+		assertNotNull(response.cards());
+		assertEquals(1, response.cards().size());
+		assertEquals(card, response.cards().getFirst());
+	}
+
+	@Test
+	void getGamePlayerHandWithoutPermission() {
+		var uuid = UUID.randomUUID();
+		var problemDetail = restTestClient.get().uri("/game/{gameUuid}/player/{playerUuid}/hand", game.getUuid(), uuid)
+						.exchange()
+						.expectStatus().isUnauthorized()
+						.returnResult(ProblemDetail.class)
+						.getResponseBody();
+
+		assertNotNull(problemDetail);
+		assertNotNull(problemDetail.getProperties());
+		assertEquals(uuid.toString(), problemDetail.getProperties().get("uuid"));
+	}
+
+	@Test
+	void doPlayerAction() {
+		var gameSpy = spy(game);
+		when(gameService.getGame(any())).thenReturn(gameSpy);
+		// Stub out playerMoveAction since we don't care what this actually does
+		doNothing().when(gameSpy).doPlayerMoveAction(any(), any());
+
+		var position = findFirstCardPosition(game);
+		assertNotNull(position);
+		var card = game.getBoard().getSpace(position.row, position.col).getCard();
+		game.getPlayerHands().put(player.publicUuid(), new java.util.ArrayList<>(List.of(card)));
+
+		var moveAction = new MoveAction(position.row, position.col, card);
+		var response = restTestClient.post().uri("/game/{gameUuid}/move/{playerUuid}", game.getUuid(), player.privateUuid())
+						.body(moveAction)
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GameResponse.class)
+						.getResponseBody();
+
+		assertNotNull(response);
+		assertEquals(game.getUuid(), response.uuid());
+	}
+
+	@Test
+	void doPlayerActionWithoutPermission() {
+		var uuid = UUID.randomUUID();
+		var card = new Card(Card.Suit.SPADES, 10);
+		var moveAction = new MoveAction(0, 1, card);
+
+		var problemDetail = restTestClient.post().uri("/game/{gameUuid}/move/{playerUuid}", game.getUuid(), uuid)
+						.body(moveAction)
+						.exchange()
+						.expectStatus().isUnauthorized()
+						.returnResult(ProblemDetail.class)
+						.getResponseBody();
+
+		assertNotNull(problemDetail);
+		assertNotNull(problemDetail.getProperties());
+		assertEquals(uuid.toString(), problemDetail.getProperties().get("uuid"));
+	}
+
+	@Test
+	void getGameStats() {
+		when(gameService.getGames()).thenReturn(List.of(game));
+
+		var response = restTestClient.get().uri("/game/stats")
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GameController.GameStatsResponse[].class)
+						.getResponseBody();
+
+		assertNotNull(response);
+		assertEquals(1, response.length);
+		assertEquals(game.getUuid(), response[0].gameUuid());
+	}
+
+	private static BoardPosition findFirstCardPosition(Game game) {
+		var board = game.getBoard();
+		for (int row = 0; row < board.getRows(); row++) {
+			var column = board.getColumn(row);
+			for (int col = 0; col < column.length; col++) {
+				if (board.getSpace(row, col).getCard() != null) {
+					return new BoardPosition(row, col);
+				}
+			}
+		}
+		return null;
+	}
+
+	private record BoardPosition(int row, int col) { }
 
 }

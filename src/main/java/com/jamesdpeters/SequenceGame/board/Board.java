@@ -112,9 +112,13 @@ public class Board {
 			if (run.size() >= sequenceLength) {
 				run.forEach(space -> space.setPartOfSequence(true));
 			}
-			// Only an exact sequence of sequnceLength counts as a completed sequence
-			if (run.size() % sequenceLength == 0) {
-				completedSequences.merge(chip, 1, Integer::sum);
+			int leftLen = collectLength(row, col, -dir[0], -dir[1], chip);
+			int rightLen = collectLength(row, col, dir[0], dir[1], chip);
+			int before = (leftLen / sequenceLength) + (rightLen / sequenceLength);
+			int after = (leftLen + 1 + rightLen) / sequenceLength;
+			int delta = Math.max(0, after - before);
+			if (delta > 0) {
+				completedSequences.merge(chip, delta, Integer::sum);
 			}
 		}
 	}
@@ -135,6 +139,18 @@ public class Board {
 			r += dRow;
 			c += dCol;
 		}
+	}
+
+	private int collectLength(int row, int col, int dRow, int dCol, ChipColour chip) {
+		int r = row + dRow;
+		int c = col + dCol;
+		int count = 0;
+		while (r >= 0 && r < boardSpaces.length && c >= 0 && c < boardSpaces[r].length && matchesChip(r, c, chip)) {
+			count++;
+			r += dRow;
+			c += dCol;
+		}
+		return count;
 	}
 
 	private boolean matchesChip(int row, int col, ChipColour chip) {

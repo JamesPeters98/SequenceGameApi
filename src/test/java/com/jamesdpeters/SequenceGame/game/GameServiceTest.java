@@ -168,5 +168,13 @@ class GameServiceTest {
 		assertEquals(6, player3hand.size());
 	}
 
+	@Test
+	void allGamesAreRetrieved() {
+		gameService.createGame();
+		gameService.createGame();
+		gameService.createGame();
+		assertEquals(3, gameService.getGames().size());
+	}
+
 
 }
