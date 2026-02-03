@@ -1,6 +1,7 @@
 package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyFullException;
+import com.jamesdpeters.SequenceGame.game.exceptions.GameAlreadyStartedException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFoundException;
 import com.jamesdpeters.SequenceGame.game.exceptions.GameNotFullException;
 import com.jamesdpeters.SequenceGame.player.Player;
@@ -46,6 +47,9 @@ public class GameService {
 	 * @param game the game to be started; must not be null
 	 */
 	public void startGame(@NonNull Game game) {
+		if (game.getStatus() != Game.Status.NOT_STARTED) {
+			throw new GameAlreadyStartedException(game.getUuid());
+		}
 		if (game.getPlayers().isEmpty() || game.getPlayers().size() < 2) {
 			throw new GameNotFullException(game.getUuid());
 		}
