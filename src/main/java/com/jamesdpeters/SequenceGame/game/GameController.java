@@ -32,10 +32,11 @@ public class GameController {
 
 	@PostMapping
 	@Operation(summary = "Create a new game", description = "Creates a new game and automatically adds the creator as the host")
-	public ResponseEntity<GameJoinedResponse> createGame() {
+	public ResponseEntity<GameJoinedResponse> createGame(@RequestBody(required = false) PlayerNameRequest request) {
 		log.info("Creating new game");
 		var game = gameService.createGame();
-		var host = gameService.joinGame(game.getUuid());
+		var hostName = request != null ? request.playerName() : null;
+		var host = gameService.joinGame(game.getUuid(), hostName);
 		log.info("Game created with UUID: {}", game.getUuid());
 		return ResponseEntity.ok(GameJoinedResponse.from(game.getUuid(), host));
 	}
@@ -45,9 +46,10 @@ public class GameController {
 	@ApiResponse(responseCode = "200", description = "Successfully joined the game")
 	@ApiResponse(responseCode = "404", description = "Game not found")
 	@ApiResponse(responseCode = "409", description = "Game is already full")
-	public ResponseEntity<GameJoinedResponse> joinGame(@PathVariable UUID gameUuid) {
+	public ResponseEntity<GameJoinedResponse> joinGame(@PathVariable UUID gameUuid, @RequestBody(required = false) PlayerNameRequest request) {
 		log.info("Player joining game: {}", gameUuid);
-		var player = gameService.joinGame(gameUuid);
+		var playerName = request != null ? request.playerName() : null;
+		var player = gameService.joinGame(gameUuid, playerName);
 		log.info("Player joined game: {}, playerPublicUuid: {}", gameUuid, player.publicUuid());
 		return ResponseEntity.ok(GameJoinedResponse.from(gameUuid, player));
 	}
@@ -117,7 +119,7 @@ public class GameController {
 		}
 		log.info("Player {} making move {}", publicPlayerUuid, moveAction);
 		game.doPlayerMoveAction(publicPlayerUuid, moveAction);
-		return ResponseEntity.ok(GameResponse.from(game, playerUuid));
+		return ResponseEntity.ok(GameResponse.from(game, publicPlayerUuid));
 	}
 
 	public record GameStatsResponse(UUID gameUuid, ChipColour winner, Map<ChipColour, Integer> sequences, Map<UUID, Integer> amountOfTurns, Map<ChipColour, Integer> chipsPlaced) { }

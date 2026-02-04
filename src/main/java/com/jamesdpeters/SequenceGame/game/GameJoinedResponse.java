@@ -7,9 +7,10 @@ import java.util.UUID;
 public record GameJoinedResponse(
 				UUID gameUuid,
 				UUID publicPlayerUuid,
-				UUID privatePlayerUuid
+				UUID privatePlayerUuid,
+				String playerName
 ) {
 	static GameJoinedResponse from(UUID gameUuid, Player player) {
-		return new GameJoinedResponse(gameUuid, player.publicUuid(), player.privateUuid());
+		return new GameJoinedResponse(gameUuid, player.publicUuid(), player.privateUuid(), player.name());
 	}
 }

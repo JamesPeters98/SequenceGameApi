@@ -144,6 +144,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PlayerNameRequest: {
+            playerName?: string;
+        };
         GameJoinedResponse: {
             /** Format: uuid */
             gameUuid?: string;
@@ -151,6 +154,7 @@ export interface components {
             publicPlayerUuid?: string;
             /** Format: uuid */
             privatePlayerUuid?: string;
+            playerName?: string;
         };
         BoardResponse: {
             spaces?: components["schemas"]["BoardSpaceResponse"][];
@@ -170,8 +174,8 @@ export interface components {
             suit?: "SPADES" | "HEARTS" | "DIAMONDS" | "CLUBS";
             /** Format: int32 */
             value?: number;
-            twoEyedJack?: boolean;
             oneEyedJack?: boolean;
+            twoEyedJack?: boolean;
         };
         GameResponse: {
             /** Format: uuid */
@@ -185,6 +189,9 @@ export interface components {
             players?: string[];
             playerTeams?: {
                 [key: string]: "RED" | "BLUE" | "GREEN";
+            };
+            playerNames?: {
+                [key: string]: string;
             };
             /** Format: uuid */
             host?: string;
@@ -236,7 +243,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PlayerNameRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -353,7 +364,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PlayerNameRequest"];
+            };
+        };
         responses: {
             /** @description Successfully joined the game */
             200: {

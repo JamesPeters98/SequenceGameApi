@@ -9,6 +9,7 @@ import { GameBoard } from "@/features/game/components/GameBoard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ModeToggle } from "@/components/mode-toggle";
 
 const suitIcons = {
   SPADES: "/suit-spade-fill-svgrepo-com.svg",
@@ -253,6 +254,11 @@ function LobbyActions({
 type GameResponse = components["schemas"]["GameResponse"];
 
 function GameInfoSidebar({ data }: { data: GameResponse }) {
+  const hostName = data.host ? data.playerNames?.[data.host] ?? data.host : "-";
+  const currentTurnName = data.currentPlayerTurn
+    ? data.playerNames?.[data.currentPlayerTurn] ?? data.currentPlayerTurn
+    : "-";
+
   return (
     <Card className="w-full md:w-80 md:shrink-0">
       <CardHeader>
@@ -265,9 +271,49 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
             label="Players:"
             value={`${data.playerCount ?? "-"} / ${data.maxPlayerSize ?? "-"}`}
           />
-          <InfoRow label="Host:" value={data.host ?? "-"} />
-          <InfoRow label="Current Turn:" value={data.currentPlayerTurn ?? "-"} />
+          <InfoRow label="Host:" value={hostName} />
+          <InfoRow label="Current Turn:" value={currentTurnName} />
         </div>
+
+        {data.players?.length ? (
+          <div className="mt-4 grid gap-2 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Players
+            </p>
+            <div className="grid gap-2">
+              {data.players.map((playerUuid) => {
+                const playerTeam = data.playerTeams?.[playerUuid];
+                const colourStyle = playerTeam ? teamColourStyles[playerTeam] : null;
+                const playerName = data.playerNames?.[playerUuid] ?? playerUuid;
+
+                const isCurrentTurn = data.currentPlayerTurn === playerUuid;
+
+                return (
+                  <div
+                    key={playerUuid}
+                    className={`flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2 ${
+                      isCurrentTurn ? "border-green-500/70" : "border-border/70"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      {colourStyle ? (
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${colourStyle.dot}`} />
+                      ) : (
+                        <span className="inline-block h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                      )}
+                      <span className="font-medium">{playerName}</span>
+                    </div>
+                    {playerTeam ? (
+                      <span className={`text-xs font-semibold ${colourStyle?.text ?? "text-muted-foreground"}`}>
+                        {playerTeam}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -423,20 +469,23 @@ export function LobbyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:px-6 md:py-12">
-        <header className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Sequence Game
-          </p>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold">Lobby</h1>
-            {lobbyGame.isFetching ? (
-              <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
-            ) : null}
-          </div>
-          <p className="text-muted-foreground">
-            Basic live game details from <span className="font-mono">/game</span>.
-          </p>
-        </header>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <header className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Sequence Game
+            </p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-semibold">Lobby</h1>
+              {lobbyGame.isFetching ? (
+                <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
+              ) : null}
+            </div>
+            <p className="text-muted-foreground">
+              Basic live game details from <span className="font-mono">/game</span>.
+            </p>
+          </header>
+          <ModeToggle />
+        </div>
 
         <Card>
           <CardContent className="grid gap-2 text-sm">

@@ -5,10 +5,16 @@ export type GameSession = {
   gameUuid: string;
   publicPlayerUuid?: string;
   privatePlayerUuid?: string;
+  playerName?: string;
 };
 
-export async function createGameSession(): Promise<GameSession> {
-  const { data, error } = await api.POST("/game");
+export async function createGameSession(params?: {
+  playerName?: string;
+}): Promise<GameSession> {
+  const playerName = params?.playerName?.trim();
+  const { data, error } = await api.POST("/game", {
+    body: playerName ? { playerName } : undefined,
+  });
   if (error) {
     throw new Error("Unable to create game.");
   }
@@ -20,16 +26,22 @@ export async function createGameSession(): Promise<GameSession> {
     gameUuid: data.gameUuid,
     publicPlayerUuid: data.publicPlayerUuid,
     privatePlayerUuid: data.privatePlayerUuid,
+    playerName: data.playerName,
   };
 }
 
-export async function joinGameSession(gameUuid: string): Promise<GameSession> {
+export async function joinGameSession(params: {
+  gameUuid: string;
+  playerName?: string;
+}): Promise<GameSession> {
+  const playerName = params.playerName?.trim();
   const { data, error } = await api.POST("/game/join/{gameUuid}", {
     params: {
       path: {
-        gameUuid,
+        gameUuid: params.gameUuid,
       },
     },
+    body: playerName ? { playerName } : undefined,
   });
   if (error) {
     throw new Error("Unable to join game.");
@@ -42,6 +54,7 @@ export async function joinGameSession(gameUuid: string): Promise<GameSession> {
     gameUuid: data.gameUuid,
     publicPlayerUuid: data.publicPlayerUuid,
     privatePlayerUuid: data.privatePlayerUuid,
+    playerName: data.playerName,
   };
 }
 

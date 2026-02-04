@@ -15,23 +15,25 @@ public record GameResponse(
 				Game.Status status,
 				List<UUID> players,
 				Map<UUID, ChipColour> playerTeams,
+				Map<UUID, String> playerNames,
 				UUID host,
 				BoardResponse board,
 				UUID currentPlayerTurn,
 				List<Card> playerHand,
 				ChipColour winner
 ) {
-	static GameResponse from(@NonNull Game game, @NonNull UUID privatePlayerUuid) {
+	static GameResponse from(@NonNull Game game, @NonNull UUID publicPlayerUuid) {
 		return new GameResponse(game.getUuid(),
 						game.getMaxPlayers(),
 						game.getPlayers().size(),
 						game.getStatus(),
 						game.getPlayers(),
 						game.getTeams(),
+						game.getPlayerNames(),
 						game.getHost().publicUuid(),
 						BoardResponse.from(game.getBoard()),
 						game.getCurrentPlayerTurn(),
-						game.getPlayerHands().get(privatePlayerUuid),
+						game.getPlayerHands().get(publicPlayerUuid),
 						game.getWinner());
 	}
 }

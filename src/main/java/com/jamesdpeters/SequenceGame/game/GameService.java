@@ -82,6 +82,22 @@ public class GameService {
 	 * @throws GameAlreadyFullException if the game has already reached its maximum number of players
 	 */
 	public Player joinGame(UUID gameUuid) {
+		return joinGame(gameUuid, null);
+	}
+
+	/**
+	 * Joins a player to an existing game identified by its unique identifier.
+	 * If the game does not exist, a {@link GameNotFoundException} is thrown.
+	 * If the game already has the maximum allowed number of players,
+	 * a {@link GameAlreadyFullException} is thrown.
+	 *
+	 * @param gameUuid the unique identifier of the game to join; must not be null
+	 * @param playerName the desired player name; blank names will be replaced with a default
+	 * @return the newly created {@link Player} instance for the game
+	 * @throws GameNotFoundException if no game exists with the given UUID
+	 * @throws GameAlreadyFullException if the game has already reached its maximum number of players
+	 */
+	public Player joinGame(UUID gameUuid, String playerName) {
 		var game = gameRepository.findByUuid(gameUuid);
 		if (game == null) {
 			throw new GameNotFoundException(gameUuid);
@@ -90,9 +106,17 @@ public class GameService {
 			throw new GameAlreadyFullException(gameUuid, game.getMaxPlayers());
 		}
 
-		var player = new Player(UUID.randomUUID(), UUID.randomUUID());
+		var resolvedName = resolvePlayerName(game, playerName);
+		var player = new Player(UUID.randomUUID(), UUID.randomUUID(), resolvedName);
 		game.addPlayer(player);
 		return player;
+	}
+
+	private static String resolvePlayerName(Game game, String playerName) {
+		if (playerName != null && !playerName.isBlank()) {
+			return playerName.trim();
+		}
+		return "Player " + (game.getPlayers().size() + 1);
 	}
 
 	public Collection<Game> getGames() {

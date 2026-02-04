@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 
+import { ModeToggle } from "@/components/mode-toggle";
 import { createGameSession, joinGameSession } from "@/features/game/api";
 
 function buildLobbyUrl(
@@ -19,7 +20,9 @@ function buildLobbyUrl(
 }
 
 export function HomePage() {
+  const [createPlayerName, setCreatePlayerName] = useState("");
   const [joinGameUuid, setJoinGameUuid] = useState("");
+  const [joinPlayerName, setJoinPlayerName] = useState("");
   const navigate = useNavigate();
 
   const createGame = useMutation({
@@ -33,22 +36,35 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-16">
-        <header className="space-y-2">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-            Sequence Game
-          </p>
-          <h1 className="text-3xl font-semibold">Create or join a game</h1>
-          <p className="text-muted-foreground">
-            Both actions route to the same lobby view.
-          </p>
-        </header>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <header className="space-y-2">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
+              Sequence Game
+            </p>
+            <h1 className="text-3xl font-semibold">Create or join a game</h1>
+            <p className="text-muted-foreground">
+              Both actions route to the same lobby view.
+            </p>
+          </header>
+          <ModeToggle />
+        </div>
 
         <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
           <h2 className="text-xl font-semibold">Create game</h2>
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Player name</span>
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => setCreatePlayerName(event.target.value)}
+              placeholder="Enter your name"
+              type="text"
+              value={createPlayerName}
+            />
+          </label>
           <button
             className="inline-flex w-fit items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             onClick={() =>
-              createGame.mutate(undefined, {
+              createGame.mutate({ playerName: createPlayerName }, {
                 onSuccess: (data) => {
                   setJoinGameUuid(data.gameUuid);
                   navigate(
@@ -80,6 +96,16 @@ export function HomePage() {
           </p>
 
           <label className="grid gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Player name</span>
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => setJoinPlayerName(event.target.value)}
+              placeholder="Enter your name"
+              type="text"
+              value={joinPlayerName}
+            />
+          </label>
+          <label className="grid gap-2 text-sm">
             <span className="font-medium text-muted-foreground">Game UUID</span>
             <input
               className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -93,16 +119,19 @@ export function HomePage() {
           <button
             className="inline-flex w-fit items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
             onClick={() =>
-              joinGame.mutate(joinGameUuid.trim(), {
-                onSuccess: (data) => {
-                  navigate(
-                    buildLobbyUrl(data.gameUuid, {
-                      publicPlayerUuid: data.publicPlayerUuid,
+              joinGame.mutate(
+                { gameUuid: joinGameUuid.trim(), playerName: joinPlayerName },
+                {
+                  onSuccess: (data) => {
+                    navigate(
+                      buildLobbyUrl(data.gameUuid, {
+                        publicPlayerUuid: data.publicPlayerUuid,
                       privatePlayerUuid: data.privatePlayerUuid,
                     }),
                   );
                 },
-              })
+                },
+              )
             }
             disabled={joinGame.isPending || joinGameUuid.trim().length === 0}
             type="button"

@@ -17,6 +17,7 @@ import java.util.UUID;
 public class GamePlayerContainer {
 	@Getter private final Map<UUID, List<Card>> playerHands = new HashMap<>();
 	@Getter private final Map<UUID, ChipColour> teams = new HashMap<>();
+	private final Map<UUID, String> playerNames = new HashMap<>();
 	private final Map<UUID, UUID> privateToPublicPlayerMap = new HashMap<>();
 
 	@Getter(AccessLevel.NONE) private final List<UUID> players = new ArrayList<>();
@@ -32,6 +33,7 @@ public class GamePlayerContainer {
 		}
 		players.add(player.publicUuid());
 		privateToPublicPlayerMap.put(player.privateUuid(), player.publicUuid());
+		playerNames.put(player.publicUuid(), player.name());
 	}
 
 	public void setCards(UUID publicUuid, List<Card> cards) {
@@ -89,5 +91,9 @@ public class GamePlayerContainer {
 
 	public List<UUID> getPlayers() {
 		return Collections.unmodifiableList(players);
+	}
+
+	public Map<UUID, String> getPlayerNames() {
+		return Collections.unmodifiableMap(playerNames);
 	}
 }

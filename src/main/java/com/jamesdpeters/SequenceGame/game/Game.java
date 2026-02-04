@@ -66,6 +66,10 @@ public class Game {
 		return playerContainer.getPlayerHands();
 	}
 
+	public Map<UUID, String> getPlayerNames() {
+		return playerContainer.getPlayerNames();
+	}
+
 	public enum Status {
 		NOT_STARTED, IN_PROGRESS, COMPLETED
 	}
@@ -152,7 +156,6 @@ public class Game {
 		var boardSpace = board.getSpace(action.row(), action.column());
 		var teamChip = playerContainer.getTeam(publicPlayerUUID);
 		var nextPlayer = playerContainer.nextPlayerTurn();
-		boolean shouldDrawCard = true;
 
 		if (card.isOneEyedJack()) {
 			doOneEyedJackAction(board, action.row(), action.column(), teamChip);

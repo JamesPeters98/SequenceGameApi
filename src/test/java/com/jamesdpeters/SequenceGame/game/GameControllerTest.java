@@ -38,17 +38,18 @@ class GameControllerTest {
 
 	@BeforeEach
 	void setUp() {
-		player = new Player();
+		player = new Player(UUID.randomUUID(), UUID.randomUUID(), "Host");
 		game = new Game();
 		game.addPlayer(player);
 		when(gameService.createGame()).thenReturn(game);
 		when(gameService.getGame(any())).thenReturn(game);
-		when(gameService.joinGame(any())).thenReturn(player);
+		when(gameService.joinGame(any(), any())).thenReturn(player);
 	}
 
 	@Test
 	void createGame() {
 		var result = restTestClient.post().uri("/game")
+						.body(new PlayerNameRequest("Host"))
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameJoinedResponse.class);
@@ -58,6 +59,7 @@ class GameControllerTest {
 		assertNotNull(gameDto.gameUuid());
 		assertNotNull(gameDto.publicPlayerUuid());
 		assertNotNull(gameDto.privatePlayerUuid());
+		assertEquals("Host", gameDto.playerName());
 	}
 
 	@Test
@@ -66,11 +68,12 @@ class GameControllerTest {
 		when(gameService.createGame()).thenReturn(game);
 		when(gameService.getGame(any())).thenReturn(game);
 
-		var player = new Player(UUID.randomUUID(), UUID.randomUUID());
+		var player = new Player(UUID.randomUUID(), UUID.randomUUID(), "Host");
 		game.addPlayer(player);
-		when(gameService.joinGame(any())).thenReturn(player);
+		when(gameService.joinGame(any(), any())).thenReturn(player);
 
 		var gameResult = restTestClient.post().uri("/game")
+						.body(new PlayerNameRequest("Host"))
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameJoinedResponse.class);
@@ -78,6 +81,7 @@ class GameControllerTest {
 		assertNotNull(gameResult.getResponseBody());
 
 		var result = restTestClient.post().uri("/game/join/{gameUuid}", gameResult.getResponseBody().gameUuid())
+						.body(new PlayerNameRequest("Guest"))
 						.exchange()
 						.expectStatus().isOk()
 						.returnResult(GameJoinedResponse.class);
@@ -86,12 +90,13 @@ class GameControllerTest {
 		assertNotNull(gameDto);
 		assertNotNull(gameDto.gameUuid());
 		assertNotNull(gameDto.publicPlayerUuid());
+		assertNotNull(gameDto.playerName());
 	}
 
 	@Test
 	void joinGameWithInvalidGameUuid() {
 		var uuid = UUID.randomUUID();
-		when(gameService.joinGame(any())).thenThrow(new GameNotFoundException(uuid));
+		when(gameService.joinGame(any(), any())).thenThrow(new GameNotFoundException(uuid));
 
 		var result = restTestClient.post().uri("/game/join/{gameUuid}", uuid)
 						.exchange()
@@ -106,7 +111,7 @@ class GameControllerTest {
 	@Test
 	void joinGameWithMaxPlayers() {
 		var uuid = UUID.randomUUID();
-		when(gameService.joinGame(any())).thenThrow(new GameAlreadyFullException(uuid, 2));
+		when(gameService.joinGame(any(), any())).thenThrow(new GameAlreadyFullException(uuid, 2));
 
 		var result = restTestClient.post().uri("/game/join/{gameUuid}", uuid)
 						.exchange()
@@ -145,6 +150,8 @@ class GameControllerTest {
 
 		assertEquals(player.publicUuid(), gameDetails.getResponseBody().host());
 		assertEquals(player.privateUuid(), gameDto.privatePlayerUuid());
+		assertNotNull(gameDetails.getResponseBody().playerNames());
+		assertEquals(player.name(), gameDetails.getResponseBody().playerNames().get(player.publicUuid()));
 	}
 
 	@Test

@@ -73,7 +73,6 @@ class GameServiceTest {
 		Game game = gameService.createGame();
 		gameService.joinGame(game.getUuid());
 		gameService.joinGame(game.getUuid());
-		gameService.startGame(game);
 		assertDoesNotThrow(() -> gameService.startGame(game));
 		assertEquals(2, game.getPlayers().size());
 	}
@@ -81,7 +80,7 @@ class GameServiceTest {
 	@Test
 	void playerJoinsGame() {
 		Game game = gameService.createGame();
-		Player player = gameService.joinGame(game.getUuid());
+		Player player = gameService.joinGame(game.getUuid(), "Alice");
 
 		var gameByUuid = gameService.getGame(game.getUuid());
 		assertNotNull(gameByUuid);
@@ -90,6 +89,8 @@ class GameServiceTest {
 		assertEquals(player.publicUuid(), gameByUuid.getPlayers().getFirst());
 		assertEquals(player.publicUuid(), gameByUuid.getHost().publicUuid());
 		assertEquals(player.privateUuid(), gameByUuid.getHost().privateUuid());
+		assertEquals("Alice", player.name());
+		assertEquals("Alice", gameByUuid.getPlayerNames().get(player.publicUuid()));
 	}
 
 	@Test
