@@ -4,7 +4,7 @@ import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import type { components } from "@/api/schema";
-import { getGameDetails, startGame, submitMove } from "@/features/game/api";
+import { getGameDetails, getGameDetailsAsViewer, startGame, submitMove } from "@/features/game/api";
 import { GameBoard } from "@/features/game/components/GameBoard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -191,18 +191,11 @@ function collectAlerts(
   lobbyGame: { isError: boolean; error: { message: string } | null },
   startGameMutation: { isError: boolean; error: { message: string } | null },
   moveMutation: { isError: boolean; error: { message: string } | null },
-  privatePlayerUuid?: string,
 ) {
   const alerts: { key: string; message: string }[] = [];
 
   if (lobbyGame.isError) {
     alerts.push({ key: "lobby-error", message: lobbyGame.error!.message });
-  }
-  if (!privatePlayerUuid) {
-    alerts.push({
-      key: "missing-private-uuid",
-      message: "Missing private player UUID. Re-join the game to load lobby details.",
-    });
   }
   if (startGameMutation.isError) {
     alerts.push({ key: "start-game-error", message: startGameMutation.error!.message });
@@ -325,12 +318,14 @@ function GameContent({
   playerColour,
   onSpaceClick,
   isMovePending,
+  isInteractive,
 }: {
   data: GameResponse;
   selectedCard: PlayingCard | null;
   playerColour?: "RED" | "BLUE" | "GREEN";
   onSpaceClick: (space: BoardSpace) => void;
   isMovePending: boolean;
+  isInteractive: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-start">
@@ -342,6 +337,7 @@ function GameContent({
             playerColour={playerColour}
             onSpaceClick={onSpaceClick}
             isActionPending={isMovePending}
+            isInteractive={isInteractive}
           />
         </CardContent>
       </Card>
@@ -401,11 +397,17 @@ export function LobbyPage() {
 
   const publicPlayerUuid = searchParams.get("publicPlayerUuid") ?? undefined;
   const privatePlayerUuid = searchParams.get("privatePlayerUuid") ?? undefined;
+  const isViewer = !privatePlayerUuid;
 
   const lobbyGame = useQuery({
-    queryKey: ["game", gameUuid, privatePlayerUuid],
-    queryFn: () => getGameDetails(gameUuid!, privatePlayerUuid!),
-    enabled: Boolean(gameUuid && privatePlayerUuid),
+    queryKey: ["game", gameUuid, privatePlayerUuid ?? "viewer"],
+    queryFn: () => {
+      if (privatePlayerUuid) {
+        return getGameDetails(gameUuid!, privatePlayerUuid);
+      }
+      return getGameDetailsAsViewer(gameUuid!);
+    },
+    enabled: Boolean(gameUuid),
     refetchInterval: 1000,
   });
 
@@ -446,11 +448,12 @@ export function LobbyPage() {
   const canStartGame = Boolean(privatePlayerUuid) && isHost && !isInProgress;
   const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, publicPlayerUuid, privatePlayerUuid);
   const playerColour = getPlayerColour(lobbyGame.data, publicPlayerUuid, privatePlayerUuid);
+  const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
 
-  const alerts = collectAlerts(lobbyGame, startGameMutation, moveMutation, privatePlayerUuid);
+  const alerts = collectAlerts(lobbyGame, startGameMutation, moveMutation);
 
   const handleBoardClick = (space: BoardSpace) => {
-    if (!gameUuid || !privatePlayerUuid) {
+    if (!gameUuid || !privatePlayerUuid || !canSubmitMoves) {
       return;
     }
 
@@ -480,9 +483,6 @@ export function LobbyPage() {
                 <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
               ) : null}
             </div>
-            <p className="text-muted-foreground">
-              Basic live game details from <span className="font-mono">/game</span>.
-            </p>
           </header>
           <ModeToggle />
         </div>
@@ -495,6 +495,9 @@ export function LobbyPage() {
             ) : null}
             {privatePlayerUuid ? (
               <InfoRow label="Private Player UUID:" value={privatePlayerUuid} />
+            ) : null}
+            {!privatePlayerUuid ? (
+              <InfoRow label="Mode:" value="Viewer (read-only)" />
             ) : null}
           </CardContent>
         </Card>
@@ -510,14 +513,22 @@ export function LobbyPage() {
           <AlertBanner key={alert.key} message={alert.message} />
         ))}
 
-        {privatePlayerUuid && lobbyGame.data ? (
+        {isViewer ? (
+          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            Viewer mode is read-only. Moves and card selection are disabled.
+          </div>
+        ) : null}
+
+        {lobbyGame.data ? (
           <>
-            <StatusBanner
-              isPlayersTurn={isPlayersTurn}
-              playerColour={playerColour}
-              isInProgress={isInProgress}
-            />
-            {isPlayersTurn && lobbyGame.data.playerHand?.length ? (
+            {!isViewer ? (
+              <StatusBanner
+                isPlayersTurn={canSubmitMoves}
+                playerColour={playerColour}
+                isInProgress={isInProgress}
+              />
+            ) : null}
+            {canSubmitMoves && lobbyGame.data.playerHand?.length ? (
               <PlayerHand
                 hand={lobbyGame.data.playerHand}
                 selectedCard={selectedCard}
@@ -526,19 +537,20 @@ export function LobbyPage() {
             ) : null}
             <GameContent
               data={lobbyGame.data}
-              selectedCard={isPlayersTurn ? selectedCard : null}
+              selectedCard={canSubmitMoves ? selectedCard : null}
               playerColour={playerColour}
               onSpaceClick={handleBoardClick}
               isMovePending={moveMutation.isPending}
+              isInteractive={canSubmitMoves && !moveMutation.isPending}
             />
           </>
-        ) : privatePlayerUuid ? (
+        ) : (
           <Card size="sm">
             <CardContent className="text-sm text-muted-foreground">
               Loading lobby details...
             </CardContent>
           </Card>
-        ) : null}
+        )}
 
         {lobbyGame.data?.status === "COMPLETED" && <GameCompleteOverlay data={lobbyGame.data} />}
       </div>

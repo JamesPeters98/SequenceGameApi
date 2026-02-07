@@ -23,6 +23,7 @@ export function HomePage() {
   const [createPlayerName, setCreatePlayerName] = useState("");
   const [joinGameUuid, setJoinGameUuid] = useState("");
   const [joinPlayerName, setJoinPlayerName] = useState("");
+  const [viewGameUuid, setViewGameUuid] = useState("");
   const navigate = useNavigate();
 
   const createGame = useMutation({
@@ -126,10 +127,10 @@ export function HomePage() {
                     navigate(
                       buildLobbyUrl(data.gameUuid, {
                         publicPlayerUuid: data.publicPlayerUuid,
-                      privatePlayerUuid: data.privatePlayerUuid,
-                    }),
-                  );
-                },
+                        privatePlayerUuid: data.privatePlayerUuid,
+                      }),
+                    );
+                  },
                 },
               )
             }
@@ -144,6 +145,33 @@ export function HomePage() {
               {joinGame.error.message}
             </div>
           ) : null}
+        </div>
+
+        <div className="flex flex-col gap-4 rounded-2xl border border-border/80 bg-card p-6 shadow-sm">
+          <h2 className="text-xl font-semibold">View game</h2>
+          <p className="text-sm text-muted-foreground">
+            Open a game in read-only mode without joining as a player.
+          </p>
+
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Game UUID</span>
+            <input
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => setViewGameUuid(event.target.value)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              type="text"
+              value={viewGameUuid}
+            />
+          </label>
+
+          <button
+            className="inline-flex w-fit items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+            onClick={() => navigate(`/lobby/${viewGameUuid.trim()}`)}
+            disabled={viewGameUuid.trim().length === 0}
+            type="button"
+          >
+            View game
+          </button>
         </div>
       </div>
     </div>

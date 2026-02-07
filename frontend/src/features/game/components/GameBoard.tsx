@@ -49,6 +49,7 @@ type Props = {
     partOfSequence?: boolean;
   }) => void;
   isActionPending?: boolean;
+  isInteractive?: boolean;
 };
 
 function toCardKey(card?: Card): string | null {
@@ -97,6 +98,7 @@ export function GameBoard({
   playerColour,
   onSpaceClick,
   isActionPending = false,
+  isInteractive = true,
 }: Props) {
   const spaces =
     board?.spaces?.filter(
@@ -135,8 +137,15 @@ export function GameBoard({
           return (
             <button
               key={key}
-              className={`relative flex aspect-square min-h-0 flex-col justify-between rounded-md border ${borderClass} bg-background p-1 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md md:rounded-lg md:p-1.5`}
+              className={`relative flex aspect-square min-h-0 flex-col justify-between rounded-md border ${borderClass} bg-background p-1 text-left shadow-sm transition md:rounded-lg md:p-1.5 ${
+                isInteractive
+                  ? "hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+                  : "cursor-not-allowed opacity-90"
+              }`}
               onClick={() => {
+                if (!isInteractive) {
+                  return;
+                }
                 const payload = {
                   row: rowIndex,
                   col: colIndex,
@@ -144,10 +153,9 @@ export function GameBoard({
                   colour: space?.colour,
                   partOfSequence: space?.partOfSequence,
                 };
-                console.log("Board space clicked", payload);
                 onSpaceClick?.(payload);
               }}
-              disabled={isActionPending}
+              disabled={isActionPending || !isInteractive}
               type="button"
             >
               <div className="flex items-start justify-between gap-2">

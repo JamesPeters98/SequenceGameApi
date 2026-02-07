@@ -84,6 +84,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/game/{gameUuid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get game details
+         * @description Returns the current state of a game including players, status, and board without current player hand
+         */
+        get: operations["getGameDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/game/{gameUuid}/{playerUuid}": {
         parameters: {
             query?: never;
@@ -95,7 +115,7 @@ export interface paths {
          * Get game details
          * @description Returns the current state of a game including players, status, and board
          */
-        get: operations["getGameDetails"];
+        get: operations["getGameDetails_1"];
         put?: never;
         post?: never;
         delete?: never;
@@ -201,6 +221,7 @@ export interface components {
             playerHand?: components["schemas"]["Card"][];
             /** @enum {string} */
             winner?: "RED" | "BLUE" | "GREEN";
+            moveHistory?: components["schemas"]["PairUUIDMoveAction"][];
         };
         MoveAction: {
             /** Format: int32 */
@@ -208,6 +229,14 @@ export interface components {
             /** Format: int32 */
             column?: number;
             card?: components["schemas"]["Card"];
+        };
+        PairUUIDMoveAction: {
+            value?: components["schemas"]["MoveAction"];
+            /** Format: uuid */
+            key?: string;
+            right?: components["schemas"]["MoveAction"];
+            /** Format: uuid */
+            left?: string;
         };
         GamePlayerHandResponse: {
             cards?: components["schemas"]["Card"][];
@@ -400,6 +429,37 @@ export interface operations {
         };
     };
     getGameDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameUuid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Game details retrieved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+            /** @description Game not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GameResponse"];
+                };
+            };
+        };
+    };
+    getGameDetails_1: {
         parameters: {
             query?: never;
             header?: never;

@@ -80,6 +80,26 @@ export async function getGameDetails(
   return data;
 }
 
+export async function getGameDetailsAsViewer(
+  gameUuid: string,
+): Promise<components["schemas"]["GameResponse"]> {
+  const { data, error } = await api.GET("/game/{gameUuid}", {
+    params: {
+      path: {
+        gameUuid,
+      },
+    },
+  });
+  if (error) {
+    throw new Error("Unable to load game details.");
+  }
+  if (!data) {
+    throw new Error("Game details response was empty.");
+  }
+
+  return data;
+}
+
 export async function startGame(gameUuid: string, hostUuid: string): Promise<components["schemas"]["GameResponse"]> {
   const { data, error } = await api.POST("/game/{gameUuid}/start/{hostUuid}", {
     params: {

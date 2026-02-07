@@ -2,6 +2,7 @@ package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.card.Card;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 
@@ -21,7 +22,8 @@ public record GameResponse(
 				BoardResponse board,
 				UUID currentPlayerTurn,
 				List<Card> playerHand,
-				ChipColour winner
+				ChipColour winner,
+				List<Pair<UUID, MoveAction>> moveHistory
 ) {
 	static GameResponse from(@NonNull Game game, @Nullable UUID publicPlayerUuid) {
 		return new GameResponse(game.getUuid(),
@@ -35,6 +37,7 @@ public record GameResponse(
 						BoardResponse.from(game.getBoard()),
 						game.getCurrentPlayerTurn(),
 						game.getPlayerHands().get(publicPlayerUuid),
-						game.getWinner());
+						game.getWinner(),
+						game.getMoveHistory());
 	}
 }

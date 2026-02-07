@@ -9,8 +9,10 @@ import com.jamesdpeters.SequenceGame.player.Player;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +28,7 @@ public class Game {
 	private final Board board = new Board();
 	private final GamePlayerContainer playerContainer = new GamePlayerContainer();
 	private final Map<UUID, Integer> amountOfTurns = new HashMap<>();
+	private final List<Pair<UUID, MoveAction>> moveHistory = new ArrayList<>();
 
 	private final int maxPlayers;
 	private Instant startedDate;
@@ -174,6 +177,7 @@ public class Game {
 		}
 
 		amountOfTurns.merge(publicPlayerUUID, 1, Integer::sum);
+		moveHistory.add(Pair.of(publicPlayerUUID, action));
 
 		if (board.getCompletedSequences(teamChip) >= winningSequenceLength) {
 			winner = teamChip;
