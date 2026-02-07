@@ -3,6 +3,7 @@ package com.jamesdpeters.SequenceGame.game;
 import com.jamesdpeters.SequenceGame.board.ChipColour;
 import com.jamesdpeters.SequenceGame.card.Card;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,7 @@ public record GameResponse(
 				List<Card> playerHand,
 				ChipColour winner
 ) {
-	static GameResponse from(@NonNull Game game, @NonNull UUID publicPlayerUuid) {
+	static GameResponse from(@NonNull Game game, @Nullable UUID publicPlayerUuid) {
 		return new GameResponse(game.getUuid(),
 						game.getMaxPlayers(),
 						game.getPlayers().size(),

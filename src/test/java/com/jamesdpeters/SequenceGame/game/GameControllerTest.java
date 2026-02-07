@@ -155,6 +155,35 @@ class GameControllerTest {
 	}
 
 	@Test
+	void getGameDetailsWithoutPlayer() {
+		var result = restTestClient.post().uri("/game")
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GameJoinedResponse.class);
+
+		var gameDto = result.getResponseBody();
+		assertNotNull(gameDto);
+
+		var gameDetails = restTestClient.get().uri("/game/{gameUuid}", gameDto.gameUuid())
+						.exchange()
+						.expectStatus().isOk()
+						.returnResult(GameResponse.class);
+
+		assertNotNull(gameDetails.getResponseBody());
+		assertEquals(gameDto.gameUuid(), gameDetails.getResponseBody().uuid());
+
+		assertNotNull(gameDto.privatePlayerUuid());
+		assertNotNull(gameDetails.getResponseBody().host());
+
+		assertEquals(player.publicUuid(), gameDetails.getResponseBody().host());
+		assertEquals(player.privateUuid(), gameDto.privatePlayerUuid());
+		assertNotNull(gameDetails.getResponseBody().playerNames());
+		assertEquals(player.name(), gameDetails.getResponseBody().playerNames().get(player.publicUuid()));
+		assertNull(gameDetails.getResponseBody().playerHand());
+	}
+
+
+	@Test
 	void startGame() {
 		var gameResponse = restTestClient.post().uri("/game/{gameUuid}/start/{hostUuid}", game.getUuid(), player.privateUuid())
 						.exchange()

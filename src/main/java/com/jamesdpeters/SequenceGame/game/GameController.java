@@ -69,6 +69,15 @@ public class GameController {
 		return ResponseEntity.ok(GameResponse.from(game, publicPlayerUuid));
 	}
 
+	@GetMapping("/{gameUuid}")
+	@Operation(summary = "Get game details", description = "Returns the current state of a game including players, status, and board without current player hand")
+	@ApiResponse(responseCode = "200", description = "Game details retrieved")
+	@ApiResponse(responseCode = "404", description = "Game not found")
+	public ResponseEntity<GameResponse> getGameDetails(@PathVariable UUID gameUuid) {
+		log.debug("Getting game details for: {}", gameUuid);
+		var game = gameService.getGame(gameUuid);
+		return ResponseEntity.ok(GameResponse.from(game, null));
+	}
 	@PostMapping("/{gameUuid}/start/{hostUuid}")
 	@Operation(summary = "Start a game", description = "Starts the game, dealing cards and setting up teams. Only the host can start the game.")
 	@ApiResponse(responseCode = "200", description = "Game started successfully")
