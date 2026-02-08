@@ -35,6 +35,8 @@ public class Game {
 	private ChipColour winner = null;
 	private final int winningSequenceLength;
 
+	private boolean deadCardDiscardedThisTurn = false;
+
 	@Setter private Status status;
 
 	public Game() {
@@ -81,6 +83,7 @@ public class Game {
 		organiseTeams();
 		dealCards();
 		setStatus(Status.IN_PROGRESS);
+		deadCardDiscardedThisTurn = false;
 		setGameStarted();
 	}
 
@@ -169,7 +172,11 @@ public class Game {
 				throw new GameMoveException(GameMoveException.GameMoveError.POSITION_OCCUPIED);
 			}
 			if (board.isDeadCard(card)) {
-				// Do action
+				if (deadCardDiscardedThisTurn) {
+					throw new GameMoveException(GameMoveException.GameMoveError.DEAD_CARD_DISCARD_ALREADY_USED);
+				}
+				// Dead-card discard: same player continues, but only once this turn.
+				deadCardDiscardedThisTurn = true;
 				nextPlayer = publicPlayerUUID;
 			} else {
 				board.setChip(action.row(), action.column(), teamChip);
@@ -183,6 +190,10 @@ public class Game {
 			winner = teamChip;
 			status = Status.COMPLETED;
 			return;
+		}
+
+		if (!nextPlayer.equals(publicPlayerUUID)) {
+			deadCardDiscardedThisTurn = false;
 		}
 
 		playerContainer.setCurrentPlayerTurn(nextPlayer);

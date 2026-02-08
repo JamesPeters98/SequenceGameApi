@@ -248,19 +248,24 @@ class GameTest {
 			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
 			setupGame(cards);
 
-			// Set all spaces to be occupied by player 2
 			var player2team = game.getTeams().get(player2.publicUuid());
 			setAllChips(game.getBoard(), player2team);
 
-			// Open up a space that's available to play
 			game.getBoard().setChip(1, 1, null);
+			game.getBoard().setChip(1, 2, null);
 
 			var hand = game.getPlayerHands().get(player1.publicUuid());
 			hand.clear();
-			hand.add(new Card(Card.Suit.SPADES, 10));
-			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 1, new Card(Card.Suit.SPADES, 10)));
+			hand.add(new Card(Card.Suit.SPADES, 14));
+			hand.add(new Card(Card.Suit.HEARTS, 14));
+
+			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 1, new Card(Card.Suit.SPADES, 14)));
 			assertSame(player1.publicUuid(), game.getCurrentPlayerTurn());
-			assertEquals(1, game.getPlayerHands().get(player1.publicUuid()).size());
+			assertEquals(2, game.getPlayerHands().get(player1.publicUuid()).size());
+
+			var exception = assertThrows(GameMoveException.class,
+					() -> game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 2, new Card(Card.Suit.HEARTS, 14))));
+			assertSame(GameMoveException.GameMoveError.DEAD_CARD_DISCARD_ALREADY_USED, exception.getError());
 		}
 
 		@Test

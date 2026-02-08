@@ -34,6 +34,7 @@ public class GameMoveException extends ErrorResponseException {
 		CANNOT_REMOVE_EMPTY_CHIP("Cannot remove empty chip"),
 		CANNOT_REMOVE_OWN_CHIP("Cannot remove own chip"),
 		CANNOT_PLAY_ON_WILDCARD("Cannot play on wildcard"),
+		DEAD_CARD_DISCARD_ALREADY_USED("Only one dead card discard is allowed per turn"),
 		PLAYER_NOT_FOUND("Player not found");
 
 		private final String message;
