@@ -245,12 +245,66 @@ function LobbyActions({
 }
 
 type GameResponse = components["schemas"]["GameResponse"];
+type MoveAction = components["schemas"]["MoveAction"];
+type MoveHistoryEntry = components["schemas"]["PairUUIDMoveAction"];
+
+function MoveCardBadge({ card }: { card?: PlayingCard }) {
+  if (!card) {
+    return (
+      <Badge variant="outline" className="h-auto px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
+        No card
+      </Badge>
+    );
+  }
+
+  const suit = card.suit;
+  const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
+  let specialLabel: string | null = null;
+  if (card.twoEyedJack) specialLabel = "Wild";
+  if (card.oneEyedJack) specialLabel = "Remove";
+
+  return (
+    <Badge variant="outline" className="h-auto gap-1.5 px-2 py-0.5 font-mono text-[11px]">
+      <span className={isRedSuit ? "text-red-500" : "text-foreground"}>
+        {formatCardValue(card.value)}
+      </span>
+      {suit ? <SuitIcon suit={suit} /> : null}
+      {specialLabel ? <span className="text-[10px] font-semibold text-purple-500">{specialLabel}</span> : null}
+    </Badge>
+  );
+}
+
+function normalizeMoveHistoryEntry(entry: MoveHistoryEntry): { playerUuid?: string; move?: MoveAction } {
+  // Some backends serialize move history as [{ "<playerUuid>": { row, column, card } }]
+  // instead of explicit key/value fields.
+  const dynamicEntry = entry as unknown as Record<string, unknown>;
+  const dynamicKeys = Object.keys(dynamicEntry).filter(
+    (key) => !["left", "right", "key", "value"].includes(key),
+  );
+  if (dynamicKeys.length > 0) {
+    const firstKey = dynamicKeys[0];
+    const maybeMove = dynamicEntry[firstKey] as MoveAction | undefined;
+    return {
+      playerUuid: firstKey,
+      move: maybeMove,
+    };
+  }
+
+  return {
+    playerUuid: entry.left ?? entry.key,
+    move: entry.right ?? entry.value,
+  };
+}
 
 function GameInfoSidebar({ data }: { data: GameResponse }) {
   const hostName = data.host ? data.playerNames?.[data.host] ?? data.host : "-";
   const currentTurnName = data.currentPlayerTurn
     ? data.playerNames?.[data.currentPlayerTurn] ?? data.currentPlayerTurn
     : "-";
+  const moveHistory = (data.moveHistory ?? [])
+    .map(normalizeMoveHistoryEntry)
+    .filter((entry) => entry.playerUuid || entry.move)
+    .reverse();
 
   return (
     <Card className="w-full md:w-80 md:shrink-0">
@@ -307,6 +361,44 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
             </div>
           </div>
         ) : null}
+
+        <div className="mt-4 grid gap-2 text-sm">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Move history
+          </p>
+          {moveHistory.length ? (
+            <div className="max-h-64 overflow-y-auto pr-1">
+              <div className="grid gap-2">
+                {moveHistory.map((entry, index) => {
+                  const playerUuid = entry.playerUuid;
+                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? playerUuid : "Unknown player";
+                  const playerTeam = playerUuid ? data.playerTeams?.[playerUuid] : undefined;
+                  const teamStyle = playerTeam ? teamColourStyles[playerTeam] : null;
+                  const row = entry.move?.row;
+                  const column = entry.move?.column;
+
+                  return (
+                    <div
+                      key={`${playerUuid ?? "unknown"}-${row ?? "x"}-${column ?? "x"}-${index}`}
+                      className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-2 py-1.5 text-xs"
+                    >
+                      <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${teamStyle?.dot ?? "bg-muted-foreground/40"}`} />
+                      <span className="max-w-28 truncate font-medium" title={playerName}>
+                        {playerName}
+                      </span>
+                      <MoveCardBadge card={entry.move?.card} />
+                      <span className="ml-auto font-mono text-[11px] text-muted-foreground">
+                        ({row ?? "-"}, {column ?? "-"})
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No moves yet.</p>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
