@@ -266,6 +266,82 @@
         <div class="metrics" id="sequenceSummary"></div>
         <p class="note">Action masking enforces normal cards, one-eyed jacks, and two-eyed jacks. Status auto-refreshes while running.</p>
       </article>
+
+      <article class="panel">
+        <h2>Sequence RL Training</h2>
+        <form id="sequence-train-form">
+          <label>
+            Episodes
+            <input id="sequenceTrainEpisodes" name="episodes" type="number" value="30" min="1" max="1000" required>
+          </label>
+          <label>
+            Player Count
+            <input id="sequenceTrainPlayerCount" name="playerCount" type="number" value="2" min="2" max="12" required>
+          </label>
+          <label>
+            Max Turns / Episode
+            <input id="sequenceTrainMaxTurns" name="maxTurnsPerEpisode" type="number" value="350" min="10" max="5000" required>
+          </label>
+          <label>
+            Gamma
+            <input id="sequenceTrainGamma" name="gamma" type="number" value="0.95" step="0.01" min="0.5" max="0.999" required>
+          </label>
+          <label>
+            Epsilon Start
+            <input id="sequenceTrainEpsStart" name="epsilonStart" type="number" value="0.25" step="0.01" min="0" max="1" required>
+          </label>
+          <label>
+            Epsilon End
+            <input id="sequenceTrainEpsEnd" name="epsilonEnd" type="number" value="0.05" step="0.01" min="0" max="1" required>
+          </label>
+          <label>
+            Seed
+            <input id="sequenceTrainSeed" name="seed" type="number" placeholder="Random each run">
+          </label>
+          <button id="sequenceTrainButton" type="submit">Run RL Training</button>
+        </form>
+        <p class="status" id="sequenceTrainStatus">Ready.</p>
+      </article>
+
+      <article class="panel">
+        <h2>RL Training Result</h2>
+        <div class="metrics" id="sequenceTrainSummary"></div>
+        <div id="sequenceTrainChartWrap" style="display:none; margin-top:12px;">
+          <svg id="sequenceTrainChart" viewBox="0 0 640 220" width="100%" height="220" aria-label="Episode reward chart"></svg>
+        </div>
+        <div id="sequenceTrainMovesChartWrap" style="display:none; margin-top:12px;">
+          <svg id="sequenceTrainMovesChart" viewBox="0 0 640 220" width="100%" height="220" aria-label="Average learner moves chart"></svg>
+        </div>
+      </article>
+
+      <article class="panel">
+        <h2>RL Evaluation</h2>
+        <form id="sequence-eval-form">
+          <label>
+            Episodes
+            <input id="sequenceEvalEpisodes" name="episodes" type="number" value="50" min="1" max="2000" required>
+          </label>
+          <label>
+            Player Count
+            <input id="sequenceEvalPlayerCount" name="playerCount" type="number" value="2" min="2" max="12" required>
+          </label>
+          <label>
+            Max Turns / Episode
+            <input id="sequenceEvalMaxTurns" name="maxTurnsPerEpisode" type="number" value="350" min="10" max="5000" required>
+          </label>
+          <label>
+            Seed
+            <input id="sequenceEvalSeed" name="seed" type="number" value="4242" required>
+          </label>
+          <button id="sequenceEvalButton" type="submit">Run Evaluation</button>
+        </form>
+        <p class="status" id="sequenceEvalStatus">Ready.</p>
+      </article>
+
+      <article class="panel">
+        <h2>Evaluation Result</h2>
+        <div class="metrics" id="sequenceEvalSummary"></div>
+      </article>
     </section>
   </main>
 
@@ -285,6 +361,18 @@
     const sequenceStartButton = document.getElementById('sequenceStartButton');
     const sequenceGameUuidInput = document.getElementById('sequenceGameUuid');
     const sequenceSummary = document.getElementById('sequenceSummary');
+    const sequenceTrainForm = document.getElementById('sequence-train-form');
+    const sequenceTrainButton = document.getElementById('sequenceTrainButton');
+    const sequenceTrainStatusEl = document.getElementById('sequenceTrainStatus');
+    const sequenceTrainSummary = document.getElementById('sequenceTrainSummary');
+    const sequenceTrainChartWrap = document.getElementById('sequenceTrainChartWrap');
+    const sequenceTrainChart = document.getElementById('sequenceTrainChart');
+    const sequenceTrainMovesChartWrap = document.getElementById('sequenceTrainMovesChartWrap');
+    const sequenceTrainMovesChart = document.getElementById('sequenceTrainMovesChart');
+    const sequenceEvalForm = document.getElementById('sequence-eval-form');
+    const sequenceEvalButton = document.getElementById('sequenceEvalButton');
+    const sequenceEvalStatusEl = document.getElementById('sequenceEvalStatus');
+    const sequenceEvalSummary = document.getElementById('sequenceEvalSummary');
     let sequencePollHandle = null;
 
     function setStatus(message, isError = false) {
@@ -295,6 +383,16 @@
     function setSequenceStatus(message, isError = false) {
       sequenceStatusEl.textContent = message;
       sequenceStatusEl.classList.toggle('error', isError);
+    }
+
+    function setSequenceTrainStatus(message, isError = false) {
+      sequenceTrainStatusEl.textContent = message;
+      sequenceTrainStatusEl.classList.toggle('error', isError);
+    }
+
+    function setSequenceEvalStatus(message, isError = false) {
+      sequenceEvalStatusEl.textContent = message;
+      sequenceEvalStatusEl.classList.toggle('error', isError);
     }
 
     function formatNumber(value, digits = 4) {
@@ -353,6 +451,131 @@
         metric('Move Delay (ms)', String(result.moveDelayMs)),
         metric('Seed', String(result.seed)),
         metric('Current Turn', result.currentPlayerTurn || '-')
+      ].join('');
+    }
+
+    function renderSequenceTrainResult(result) {
+      sequenceTrainSummary.innerHTML = [
+        metric('Episodes', String(result.episodes)),
+        metric('Players', String(result.playerCount)),
+        metric('Wins', String(result.wins)),
+        metric('Losses', String(result.losses)),
+        metric('Unfinished', String(result.unfinished)),
+        metric('Learner Moves', String(result.totalLearnerMoves)),
+        metric('Avg Reward', formatNumber(result.averageEpisodeReward, 4)),
+        metric('Avg TD Error', formatNumber(result.averageTdError, 6)),
+        metric('Duration (ms)', String(result.durationMs))
+      ].join('');
+
+      renderEpisodeRewardChart(result.history || []);
+      renderAverageLearnerMovesChart(result.history || []);
+    }
+
+    function renderEpisodeRewardChart(history) {
+      if (!Array.isArray(history) || history.length === 0) {
+        sequenceTrainChartWrap.style.display = 'none';
+        sequenceTrainChart.innerHTML = '';
+        return;
+      }
+
+      const rewards = history.map(item => Number(item.totalReward));
+      const minReward = Math.min(...rewards);
+      const maxReward = Math.max(...rewards);
+      const minY = minReward === maxReward ? minReward - 1 : minReward;
+      const maxY = minReward === maxReward ? maxReward + 1 : maxReward;
+
+      const width = 640;
+      const height = 220;
+      const padding = 28;
+      const plotWidth = width - (padding * 2);
+      const plotHeight = height - (padding * 2);
+
+      const points = rewards.map((reward, index) => {
+        const x = padding + (history.length === 1 ? 0 : (index / (history.length - 1)) * plotWidth);
+        const y = padding + ((maxY - reward) / (maxY - minY)) * plotHeight;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      }).join(' ');
+
+      const zeroLineVisible = minY <= 0 && maxY >= 0;
+      let zeroLine = '';
+      if (zeroLineVisible) {
+        const zeroY = padding + ((maxY - 0) / (maxY - minY)) * plotHeight;
+        zeroLine = `<line x1="${padding}" y1="${zeroY.toFixed(2)}" x2="${width - padding}" y2="${zeroY.toFixed(2)}" stroke="#d1d5db" stroke-dasharray="3 3" />`;
+      }
+
+      sequenceTrainChart.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"></rect>
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#9ca3af" />
+        <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#9ca3af" />
+        ${zeroLine}
+        <polyline fill="none" stroke="#0f766e" stroke-width="2.5" points="${points}" />
+        <text x="${padding}" y="18" fill="#6b7280" font-size="12">Max: ${maxReward.toFixed(2)}</text>
+        <text x="${padding}" y="${height - 8}" fill="#6b7280" font-size="12">Min: ${minReward.toFixed(2)}</text>
+        <text x="${width - padding}" y="${height - 8}" fill="#6b7280" font-size="12" text-anchor="end">Episodes: ${history.length}</text>
+      `;
+
+      sequenceTrainChartWrap.style.display = 'block';
+    }
+
+    function renderAverageLearnerMovesChart(history) {
+      if (!Array.isArray(history) || history.length === 0) {
+        sequenceTrainMovesChartWrap.style.display = 'none';
+        sequenceTrainMovesChart.innerHTML = '';
+        return;
+      }
+
+      const runningAverages = [];
+      let cumulative = 0;
+      for (let i = 0; i < history.length; i++) {
+        cumulative += Number(history[i].learnerMoves || 0);
+        runningAverages.push(cumulative / (i + 1));
+      }
+
+      const minVal = Math.min(...runningAverages);
+      const maxVal = Math.max(...runningAverages);
+      const minY = minVal === maxVal ? minVal - 1 : minVal;
+      const maxY = minVal === maxVal ? maxVal + 1 : maxVal;
+
+      const width = 640;
+      const height = 220;
+      const padding = 28;
+      const plotWidth = width - (padding * 2);
+      const plotHeight = height - (padding * 2);
+
+      const points = runningAverages.map((value, index) => {
+        const x = padding + (history.length === 1 ? 0 : (index / (history.length - 1)) * plotWidth);
+        const y = padding + ((maxY - value) / (maxY - minY)) * plotHeight;
+        return `${x.toFixed(2)},${y.toFixed(2)}`;
+      }).join(' ');
+
+      const first = runningAverages[0];
+      const last = runningAverages[runningAverages.length - 1];
+      const trend = last < first ? 'down' : (last > first ? 'up' : 'flat');
+
+      sequenceTrainMovesChart.innerHTML = `
+        <rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff"></rect>
+        <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#9ca3af" />
+        <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#9ca3af" />
+        <polyline fill="none" stroke="#1d4ed8" stroke-width="2.5" points="${points}" />
+        <text x="${padding}" y="18" fill="#6b7280" font-size="12">Max avg moves: ${maxVal.toFixed(2)}</text>
+        <text x="${padding}" y="${height - 8}" fill="#6b7280" font-size="12">Min avg moves: ${minVal.toFixed(2)}</text>
+        <text x="${width - padding}" y="${height - 8}" fill="#6b7280" font-size="12" text-anchor="end">Trend: ${trend}</text>
+      `;
+
+      sequenceTrainMovesChartWrap.style.display = 'block';
+    }
+
+    function renderSequenceEvalResult(result) {
+      sequenceEvalSummary.innerHTML = [
+        metric('Episodes', String(result.episodes)),
+        metric('Players', String(result.playerCount)),
+        metric('Win Rate', formatNumber(result.winRate * 100, 2) + '%'),
+        metric('Wins', String(result.wins)),
+        metric('Losses', String(result.losses)),
+        metric('Unfinished', String(result.unfinished)),
+        metric('Avg Reward', formatNumber(result.averageEpisodeReward, 4)),
+        metric('Avg Moves', formatNumber(result.averageLearnerMoves, 2)),
+        metric('Duration (ms)', String(result.durationMs))
       ].join('');
     }
 
@@ -522,6 +745,101 @@
         setSequenceStatus(error.message || 'Unexpected start error', true);
       } finally {
         sequenceStartButton.disabled = false;
+      }
+    });
+
+    sequenceTrainForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      sequenceTrainButton.disabled = true;
+      sequenceTrainSummary.innerHTML = '';
+      sequenceTrainChartWrap.style.display = 'none';
+      sequenceTrainChart.innerHTML = '';
+      sequenceTrainMovesChartWrap.style.display = 'none';
+      sequenceTrainMovesChart.innerHTML = '';
+      setSequenceTrainStatus('Training in progress. This can take a while...');
+
+      const payload = {
+        episodes: Number(sequenceTrainForm.episodes.value),
+        playerCount: Number(sequenceTrainForm.playerCount.value),
+        maxTurnsPerEpisode: Number(sequenceTrainForm.maxTurnsPerEpisode.value),
+        gamma: Number(sequenceTrainForm.gamma.value),
+        epsilonStart: Number(sequenceTrainForm.epsilonStart.value),
+        epsilonEnd: Number(sequenceTrainForm.epsilonEnd.value)
+      };
+
+      const trainingSeedValue = sequenceTrainForm.seed.value.trim();
+      if (trainingSeedValue.length > 0) {
+        payload.seed = Number(trainingSeedValue);
+      }
+
+      try {
+        const response = await fetch('/api/sequence/train', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          let message = `Training failed (${response.status})`;
+          try {
+            const errorBody = await response.json();
+            if (errorBody && errorBody.message) {
+              message = errorBody.message;
+            }
+          } catch (ignored) {
+          }
+          throw new Error(message);
+        }
+
+        const result = await response.json();
+        renderSequenceTrainResult(result);
+        setSequenceTrainStatus(result.message || 'RL training complete.');
+      } catch (error) {
+        setSequenceTrainStatus(error.message || 'Unexpected RL training error', true);
+      } finally {
+        sequenceTrainButton.disabled = false;
+      }
+    });
+
+    sequenceEvalForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      sequenceEvalButton.disabled = true;
+      setSequenceEvalStatus('Running evaluation...');
+      sequenceEvalSummary.innerHTML = '';
+
+      const payload = {
+        episodes: Number(sequenceEvalForm.episodes.value),
+        playerCount: Number(sequenceEvalForm.playerCount.value),
+        maxTurnsPerEpisode: Number(sequenceEvalForm.maxTurnsPerEpisode.value),
+        seed: Number(sequenceEvalForm.seed.value)
+      };
+
+      try {
+        const response = await fetch('/api/sequence/evaluate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          let message = `Evaluation failed (${response.status})`;
+          try {
+            const errorBody = await response.json();
+            if (errorBody && errorBody.message) {
+              message = errorBody.message;
+            }
+          } catch (ignored) {
+          }
+          throw new Error(message);
+        }
+
+        const result = await response.json();
+        renderSequenceEvalResult(result);
+        setSequenceEvalStatus(result.message || 'Evaluation complete.');
+      } catch (error) {
+        setSequenceEvalStatus(error.message || 'Unexpected evaluation error', true);
+      } finally {
+        sequenceEvalButton.disabled = false;
       }
     });
 

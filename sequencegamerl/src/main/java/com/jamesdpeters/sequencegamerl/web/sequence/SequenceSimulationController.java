@@ -3,6 +3,11 @@ package com.jamesdpeters.sequencegamerl.web.sequence;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRandomPlayService;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRandomRunRequest;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRandomRunResult;
+import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRlTrainingRequest;
+import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRlTrainingResult;
+import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRlTrainingService;
+import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRlEvaluationRequest;
+import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceRlEvaluationResult;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceSessionInitRequest;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceSessionInitResult;
 import com.jamesdpeters.sequencegamerl.ml.sequence.SequenceSessionStartRequest;
@@ -22,14 +27,30 @@ import org.springframework.web.bind.annotation.RestController;
 public class SequenceSimulationController {
 
     private final SequenceRandomPlayService randomPlayService;
+    private final SequenceRlTrainingService rlTrainingService;
 
-    public SequenceSimulationController(SequenceRandomPlayService randomPlayService) {
+    public SequenceSimulationController(
+            SequenceRandomPlayService randomPlayService,
+            SequenceRlTrainingService rlTrainingService) {
         this.randomPlayService = randomPlayService;
+        this.rlTrainingService = rlTrainingService;
     }
 
     @PostMapping("/random-run")
     public SequenceRandomRunResult randomRun(@RequestBody(required = false) SequenceRandomRunRequest request) {
         return randomPlayService.runRandomGame(request);
+    }
+
+    @PostMapping("/train")
+    public SequenceRlTrainingResult train(@RequestBody(required = false) SequenceRlTrainingRequest request) {
+        SequenceRlTrainingRequest effectiveRequest = request == null ? new SequenceRlTrainingRequest() : request;
+        return rlTrainingService.train(effectiveRequest);
+    }
+
+    @PostMapping("/evaluate")
+    public SequenceRlEvaluationResult evaluate(@RequestBody(required = false) SequenceRlEvaluationRequest request) {
+        SequenceRlEvaluationRequest effectiveRequest = request == null ? new SequenceRlEvaluationRequest() : request;
+        return rlTrainingService.evaluate(effectiveRequest);
     }
 
     @PostMapping("/session/init")
