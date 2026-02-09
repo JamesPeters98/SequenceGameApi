@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
@@ -438,7 +438,7 @@ function GameContent({
   );
 }
 
-function GameCompleteOverlay({ data }: { data: GameResponse }) {
+function GameCompleteOverlay({ data, onDismiss }: { data: GameResponse; onDismiss: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <Card className="w-full max-w-sm">
@@ -453,9 +453,14 @@ function GameCompleteOverlay({ data }: { data: GameResponse }) {
           ) : (
             <p className="text-sm text-muted-foreground">No winner information available.</p>
           )}
-          <Button asChild>
-            <Link to="/">Back to home</Link>
-          </Button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <Button variant="outline" onClick={onDismiss}>
+              Dismiss
+            </Button>
+            <Button asChild>
+              <Link to="/">Back to home</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -486,6 +491,7 @@ export function LobbyPage() {
   const { gameUuid } = useParams();
   const [searchParams] = useSearchParams();
   const [selectedCard, setSelectedCard] = useState<PlayingCard | null>(null);
+  const [isCompleteOverlayDismissed, setIsCompleteOverlayDismissed] = useState(false);
 
   const publicPlayerUuid = searchParams.get("publicPlayerUuid") ?? undefined;
   const privatePlayerUuid = searchParams.get("privatePlayerUuid") ?? undefined;
@@ -541,6 +547,18 @@ export function LobbyPage() {
   const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, publicPlayerUuid, privatePlayerUuid);
   const playerColour = getPlayerColour(lobbyGame.data, publicPlayerUuid, privatePlayerUuid);
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
+  const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
+  const showGameCompleteOverlay = isGameCompleted && !isCompleteOverlayDismissed;
+
+  useEffect(() => {
+    setIsCompleteOverlayDismissed(false);
+  }, [gameUuid]);
+
+  useEffect(() => {
+    if (!isGameCompleted) {
+      setIsCompleteOverlayDismissed(false);
+    }
+  }, [isGameCompleted]);
 
   const alerts = collectAlerts(lobbyGame, startGameMutation, moveMutation);
 
@@ -644,7 +662,9 @@ export function LobbyPage() {
           </Card>
         )}
 
-        {lobbyGame.data?.status === "COMPLETED" && <GameCompleteOverlay data={lobbyGame.data} />}
+        {lobbyGame.data && showGameCompleteOverlay && (
+          <GameCompleteOverlay data={lobbyGame.data} onDismiss={() => setIsCompleteOverlayDismissed(true)} />
+        )}
       </div>
     </div>
   );

@@ -244,21 +244,71 @@ class GameTest {
 		}
 
 		@Test
-		void playerHasAnotherTurnAfterPlayingDeadCard() {
+		void playerTurnPassesAfterDeadDiscardWhenNoLegalMoveAfterDraw() {
 			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
 			setupGame(cards);
 
-			// Set all spaces to be occupied by player 2
 			var player2team = game.getTeams().get(player2.publicUuid());
 			setAllChips(game.getBoard(), player2team);
 
-			// Open up a space that's available to play
 			game.getBoard().setChip(1, 1, null);
+			game.getBoard().setChip(1, 2, null);
 
 			var hand = game.getPlayerHands().get(player1.publicUuid());
 			hand.clear();
-			hand.add(new Card(Card.Suit.SPADES, 10));
-			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 1, new Card(Card.Suit.SPADES, 10)));
+			hand.add(new Card(Card.Suit.SPADES, 14));
+			hand.add(new Card(Card.Suit.HEARTS, 14));
+
+			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(1, 1, new Card(Card.Suit.SPADES, 14)));
+			assertSame(player2.publicUuid(), game.getCurrentPlayerTurn());
+			assertEquals(2, game.getPlayerHands().get(player1.publicUuid()).size());
+		}
+
+		@Test
+		void playerHasAnotherTurnAfterDeadDiscardWhenLegalMoveExistsAfterDraw() {
+			var cards = Collections.nCopies(102, new Card(Card.Suit.SPADES, 1));
+			setupGame(cards);
+
+			var player2team = game.getTeams().get(player2.publicUuid());
+			setAllChips(game.getBoard(), player2team);
+
+			var legalSpace = game.getBoard()
+					.getBoardSpacesFromCard(new Card(Card.Suit.SPADES, 1))
+					.getFirst();
+
+			int discardRow = -1;
+			int discardCol = -1;
+			for (int row = 0; row < game.getBoard().getRows(); row++) {
+				for (int col = 0; col < game.getBoard().getColumn(row).length; col++) {
+					var space = game.getBoard().getSpace(row, col);
+					if (space.getCard() == null) {
+						continue;
+					}
+					if (row == legalSpace.getLeft() && col == legalSpace.getRight()) {
+						continue;
+					}
+					if (space.getCard().equals(new Card(Card.Suit.SPADES, 1))) {
+						continue;
+					}
+					discardRow = row;
+					discardCol = col;
+					break;
+				}
+				if (discardRow >= 0) {
+					break;
+				}
+			}
+
+			assertTrue(discardRow >= 0 && discardCol >= 0);
+
+			game.getBoard().setChip(legalSpace.getLeft(), legalSpace.getRight(), null);
+			game.getBoard().setChip(discardRow, discardCol, null);
+
+			var hand = game.getPlayerHands().get(player1.publicUuid());
+			hand.clear();
+			hand.add(new Card(Card.Suit.SPADES, 14));
+
+			game.doPlayerMoveAction(player1.publicUuid(), new MoveAction(discardRow, discardCol, new Card(Card.Suit.SPADES, 14)));
 			assertSame(player1.publicUuid(), game.getCurrentPlayerTurn());
 			assertEquals(1, game.getPlayerHands().get(player1.publicUuid()).size());
 		}
