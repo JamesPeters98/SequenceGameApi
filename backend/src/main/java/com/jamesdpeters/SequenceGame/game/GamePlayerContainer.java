@@ -52,6 +52,15 @@ public class GamePlayerContainer {
 		return privateToPublicPlayerMap.get(privateUuid);
 	}
 
+	public UUID getPrivateUuid(UUID publicUuid) {
+		for (var entry : privateToPublicPlayerMap.entrySet()) {
+			if (entry.getValue().equals(publicUuid)) {
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
+
 	public Card playCard(UUID publicUuid, Card card) {
 		var playerHand = playerHands.get(publicUuid);
 		if (playerHand == null) {

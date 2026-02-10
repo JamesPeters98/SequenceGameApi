@@ -23,19 +23,19 @@ import java.util.UUID;
 public class Game {
 
 	private final UUID uuid;
-	private final Instant createdDate = Instant.now();
+	private final Instant createdDate;
 	private final Deck deck;
-	private final Board board = new Board();
-	private final GamePlayerContainer playerContainer = new GamePlayerContainer();
-	private final Map<UUID, Integer> amountOfTurns = new HashMap<>();
-	private final List<Pair<UUID, MoveAction>> moveHistory = new ArrayList<>();
+	private final Board board;
+	private final GamePlayerContainer playerContainer;
+	private final Map<UUID, Integer> amountOfTurns;
+	private final List<Pair<UUID, MoveAction>> moveHistory;
 
 	private final int maxPlayers;
 	private Instant startedDate;
-	private ChipColour winner = null;
+	private ChipColour winner;
 	private final int winningSequenceLength;
 
-	private boolean deadCardDiscardedThisTurn = false;
+	private boolean deadCardDiscardedThisTurn;
 
 	@Setter private Status status;
 
@@ -48,11 +48,83 @@ public class Game {
 	}
 
 	public Game(int maxPlayers, Deck deck) {
-		this.maxPlayers = maxPlayers;
-		this.uuid = UUID.randomUUID();
-		this.status = Status.NOT_STARTED;
+		this(
+				UUID.randomUUID(),
+				Instant.now(),
+				deck,
+				new Board(),
+				new GamePlayerContainer(),
+				new HashMap<>(),
+				new ArrayList<>(),
+				maxPlayers,
+				null,
+				null,
+				2,
+				false,
+				Status.NOT_STARTED
+		);
+	}
+
+	public static Game rehydrate(
+			UUID uuid,
+			Instant createdDate,
+			Deck deck,
+			Board board,
+			GamePlayerContainer playerContainer,
+			Map<UUID, Integer> amountOfTurns,
+			List<Pair<UUID, MoveAction>> moveHistory,
+			int maxPlayers,
+			Instant startedDate,
+			ChipColour winner,
+			int winningSequenceLength,
+			boolean deadCardDiscardedThisTurn,
+			Status status
+	) {
+		return new Game(
+				uuid,
+				createdDate,
+				deck,
+				board,
+				playerContainer,
+				amountOfTurns,
+				moveHistory,
+				maxPlayers,
+				startedDate,
+				winner,
+				winningSequenceLength,
+				deadCardDiscardedThisTurn,
+				status
+		);
+	}
+
+	private Game(
+			UUID uuid,
+			Instant createdDate,
+			Deck deck,
+			Board board,
+			GamePlayerContainer playerContainer,
+			Map<UUID, Integer> amountOfTurns,
+			List<Pair<UUID, MoveAction>> moveHistory,
+			int maxPlayers,
+			Instant startedDate,
+			ChipColour winner,
+			int winningSequenceLength,
+			boolean deadCardDiscardedThisTurn,
+			Status status
+	) {
+		this.uuid = uuid;
+		this.createdDate = createdDate;
 		this.deck = deck;
-		this.winningSequenceLength = 2;
+		this.board = board;
+		this.playerContainer = playerContainer;
+		this.amountOfTurns = amountOfTurns;
+		this.moveHistory = moveHistory;
+		this.maxPlayers = maxPlayers;
+		this.startedDate = startedDate;
+		this.winner = winner;
+		this.winningSequenceLength = winningSequenceLength;
+		this.deadCardDiscardedThisTurn = deadCardDiscardedThisTurn;
+		this.status = status;
 	}
 
 	public UUID getCurrentPlayerTurn() {
@@ -155,7 +227,7 @@ public class Game {
 		}
 	}
 
-	public void doPlayerMoveAction(UUID publicPlayerUUID, MoveAction action) {
+	protected void doPlayerMoveAction(UUID publicPlayerUUID, MoveAction action) {
 		validateMove(publicPlayerUUID, action);
 
 		var card = action.card();

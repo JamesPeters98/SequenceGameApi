@@ -26,6 +26,11 @@ public class Deck extends ArrayDeque<Card> {
 		super(cards);
 	}
 
+	public Deck(List<Card> drawCards, List<Card> discardCards) {
+		super(drawCards);
+		discardPile.addAll(discardCards);
+	}
+
 	public Card draw() {
 		if (isEmpty() && !discardPile.isEmpty()) {
 			shuffleDiscardPileIntoDeck();

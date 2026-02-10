@@ -1,6 +1,7 @@
 package com.jamesdpeters.SequenceGame.game;
 
 import com.jamesdpeters.SequenceGame.player.Player;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -10,6 +11,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+@Profile("inmemory")
 public class InMemoryGameRepository implements GameRepository {
 	private final Map<UUID, Game> games = new HashMap<>();
 

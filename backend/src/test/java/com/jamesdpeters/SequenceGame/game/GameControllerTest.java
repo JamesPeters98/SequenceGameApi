@@ -44,6 +44,7 @@ class GameControllerTest {
 		when(gameService.createGame()).thenReturn(game);
 		when(gameService.getGame(any())).thenReturn(game);
 		when(gameService.joinGame(any(), any())).thenReturn(player);
+		when(gameService.doPlayerMove(any(), any(), any())).thenReturn(game);
 	}
 
 	@Test

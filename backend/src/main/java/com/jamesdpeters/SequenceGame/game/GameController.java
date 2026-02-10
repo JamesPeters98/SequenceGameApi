@@ -127,7 +127,7 @@ public class GameController {
 			throw new UserDoesNotHavePermissionException(playerUuid);
 		}
 		log.info("Player {} making move {}", publicPlayerUuid, moveAction);
-		game.doPlayerMoveAction(publicPlayerUuid, moveAction);
+		game = gameService.doPlayerMove(gameUuid, publicPlayerUuid, moveAction);
 		return ResponseEntity.ok(GameResponse.from(game, publicPlayerUuid));
 	}
 

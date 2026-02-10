@@ -1,0 +1,30 @@
+services:
+  # Your typical backend dependencies
+  postgres:
+    image: postgres:18.1
+    environment:
+      - 'POSTGRES_USER=spring'
+      - 'POSTGRES_DB=mydatabase'
+      - 'POSTGRES_PASSWORD=devpassword'
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+
+  frontend:
+    image: oven/bun:latest
+    working_dir: /app
+    environment:
+      VITE_API_PROXY_TARGET: http://host.docker.internal:8080
+    volumes:
+      - ./frontend:/app          # Mount your source for hot reload
+      - ./frontend/node_modules:/app/node_modules  # Named volume for deps
+    ports:
+      - "5173:5173"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: sh -c "bun run dev --host 0.0.0.0"
+
+volumes:
+  pgdata:

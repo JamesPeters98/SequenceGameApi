@@ -54,6 +54,7 @@ public class GameService {
 			throw new GameNotFullException(game.getUuid());
 		}
 		game.initialise();
+		gameRepository.save(game);
 	}
 
 	/**
@@ -109,7 +110,17 @@ public class GameService {
 		var resolvedName = resolvePlayerName(game, playerName);
 		var player = new Player(UUID.randomUUID(), UUID.randomUUID(), resolvedName);
 		game.addPlayer(player);
+		gameRepository.save(game);
 		return player;
+	}
+
+	public Game doPlayerMove(UUID gameUuid, UUID publicPlayerUuid, MoveAction moveAction) {
+		var game = gameRepository.findByUuid(gameUuid);
+		if (game == null) {
+			throw new GameNotFoundException(publicPlayerUuid);
+		}
+		game.doPlayerMoveAction(publicPlayerUuid, moveAction);
+		return gameRepository.save(game);
 	}
 
 	private static String resolvePlayerName(Game game, String playerName) {
