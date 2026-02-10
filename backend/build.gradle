@@ -9,6 +9,10 @@ group = 'com.jamesdpeters'
 version = '0.0.1-SNAPSHOT'
 description = 'Sequence Game project for Spring Boot'
 
+springBoot {
+	buildInfo()
+}
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(25)
