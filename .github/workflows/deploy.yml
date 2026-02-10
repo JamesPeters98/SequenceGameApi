@@ -31,5 +31,5 @@ jobs:
       - name: Trigger Coolify deploy
         if: success()
         run:  |
-          curl -f -X "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
+          curl -f "${{ secrets.COOLIFY_WEBHOOK_URL }}" \
           --header "Authorization: ${{ secrets.COOLIFY_API_TOKEN }}"
