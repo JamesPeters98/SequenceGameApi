@@ -22,6 +22,7 @@ jobs:
         run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login registry.jamespeters.co.uk -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
       - name: Build Docker image
+        working-directory: ./backend
         run: ./gradlew bootBuildImage --imageName=registry.jamespeters.co.uk/sequence-game:latest
 
       - name: Push image
