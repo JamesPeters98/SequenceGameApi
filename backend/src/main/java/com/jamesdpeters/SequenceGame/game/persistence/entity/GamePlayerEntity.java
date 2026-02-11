@@ -11,9 +11,11 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -27,6 +29,9 @@ import java.util.UUID;
 @Entity
 @Table(
 		name = "game_player",
+		indexes = {
+				@Index(name = "idx_game_player_public_uuid", columnList = "public_uuid")
+		},
 		uniqueConstraints = {
 				@UniqueConstraint(name = "uk_game_player_public", columnNames = {"game_id", "public_uuid"}),
 				@UniqueConstraint(name = "uk_game_player_private", columnNames = {"game_id", "private_uuid"}),
@@ -45,7 +50,8 @@ public class GamePlayerEntity {
 	}
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "game_player_seq_gen", sequenceName = "game_player_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_player_seq_gen")
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

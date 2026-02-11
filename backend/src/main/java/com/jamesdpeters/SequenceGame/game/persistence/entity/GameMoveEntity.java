@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -30,7 +31,8 @@ import java.util.UUID;
 public class GameMoveEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "game_move_seq_gen", sequenceName = "game_move_seq")
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_move_seq_gen")
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

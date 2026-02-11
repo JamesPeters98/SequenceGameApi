@@ -11,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -28,7 +29,8 @@ import lombok.Setter;
 public class GamePlayerHandCardEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "game_player_hand_card_seq_gen", sequenceName = "game_player_hand_card_seq")
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_player_hand_card_seq_gen")
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
