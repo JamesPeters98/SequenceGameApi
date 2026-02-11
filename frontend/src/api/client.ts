@@ -7,6 +7,17 @@ const baseUrl = configuredApiUrl
   ? configuredApiUrl.replace(/\/+$/, "")
   : "/api";
 
+const apiBearerToken = import.meta.env.VITE_API_BEARER_TOKEN?.trim();
+
 export const api = createClient<paths>({
-  baseUrl,
+  baseUrl: "/api",
+});
+
+api.use({
+  async onRequest({ request }) {
+    if (apiBearerToken) {
+      request.headers.set("Authorization", `Bearer ${apiBearerToken}`);
+    }
+    return request;
+  },
 });
