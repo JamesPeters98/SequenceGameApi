@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { toCanonicalUuid, toShortUuid } from "@/lib/uuid";
+import { IconLink } from "@tabler/icons-react";
 
 const suitIcons = {
   SPADES: "/suit-spade-fill-svgrepo-com.svg",
@@ -321,12 +322,10 @@ function collectAlerts(
 }
 
 function LobbyActions({
-  canStartGame,
   startGameMutation,
   gameUuid,
   privatePlayerUuid,
 }: {
-  canStartGame: boolean;
   startGameMutation: {
     isPending: boolean;
     mutate: (args: { gameUuid: string; hostUuid: string }) => void;
@@ -335,8 +334,14 @@ function LobbyActions({
   privatePlayerUuid?: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      {canStartGame ? (
+    <Card size="sm">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Host controls</span>
+          <span className="text-xs text-muted-foreground">
+            Start the match when everyone is ready.
+          </span>
+        </div>
         <Button
           onClick={() =>
             startGameMutation.mutate({
@@ -349,17 +354,41 @@ function LobbyActions({
         >
           {startGameMutation.isPending ? "Starting..." : "Start game"}
         </Button>
-      ) : null}
-      <Button asChild>
-        <Link to="/">Leave lobby view</Link>
-      </Button>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 type GameResponse = components["schemas"]["GameResponse"];
 type MoveAction = components["schemas"]["MoveAction"];
 type MoveHistoryEntry = components["schemas"]["PairUUIDMoveAction"];
+type GameStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
+function getStatusPresentation(status?: string): { label: string; className: string } {
+  const value = status as GameStatus | undefined;
+  switch (value) {
+    case "NOT_STARTED":
+      return {
+        label: "Waiting for players",
+        className: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      };
+    case "IN_PROGRESS":
+      return {
+        label: "In progress",
+        className: "border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      };
+    case "COMPLETED":
+      return {
+        label: "Completed",
+        className: "border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400",
+      };
+    default:
+      return {
+        label: "Loading",
+        className: "border-border bg-muted text-muted-foreground",
+      };
+  }
+}
 
 function MoveCardBadge({ card }: { card?: PlayingCard }) {
   if (!card) {
@@ -410,9 +439,10 @@ function normalizeMoveHistoryEntry(entry: MoveHistoryEntry): { playerUuid?: stri
 }
 
 function GameInfoSidebar({ data }: { data: GameResponse }) {
-  const hostName = data.host ? data.playerNames?.[data.host] ?? formatUuid(data.host) : "-";
+  const status = getStatusPresentation(data.status);
+  const hostName = data.host ? data.playerNames?.[data.host] ?? "Unknown player" : "-";
   const currentTurnName = data.currentPlayerTurn
-    ? data.playerNames?.[data.currentPlayerTurn] ?? formatUuid(data.currentPlayerTurn)
+    ? data.playerNames?.[data.currentPlayerTurn] ?? "Unknown player"
     : "-";
   const moveHistory = (data.moveHistory ?? [])
     .map(normalizeMoveHistoryEntry)
@@ -426,7 +456,14 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 text-sm">
-          <InfoRow label="Status:" value={data.status ?? "-"} />
+          <InfoRow
+            label="Status:"
+            value={(
+              <Badge variant="outline" className={status.className}>
+                {status.label}
+              </Badge>
+            )}
+          />
           <InfoRow
             label="Players:"
             value={`${data.playerCount ?? "-"} / ${data.maxPlayerSize ?? "-"}`}
@@ -444,7 +481,7 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
               {data.players.map((playerUuid) => {
                 const playerTeam = data.playerTeams?.[playerUuid];
                 const colourStyle = playerTeam ? teamColourStyles[playerTeam] : null;
-                const playerName = data.playerNames?.[playerUuid] ?? formatUuid(playerUuid);
+                const playerName = data.playerNames?.[playerUuid] ?? "Unknown player";
 
                 const isCurrentTurn = data.currentPlayerTurn === playerUuid;
 
@@ -483,8 +520,9 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
             <div className="max-h-64 overflow-y-auto pr-1">
               <div className="grid gap-2">
                 {moveHistory.map((entry, index) => {
+                  const moveNumber = moveHistory.length - index;
                   const playerUuid = entry.playerUuid;
-                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? formatUuid(playerUuid) : "Unknown player";
+                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? "Unknown player" : "Unknown player";
                   const playerTeam = playerUuid ? data.playerTeams?.[playerUuid] : undefined;
                   const teamStyle = playerTeam ? teamColourStyles[playerTeam] : null;
                   const row = entry.move?.row;
@@ -495,6 +533,9 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
                       key={`${playerUuid ?? "unknown"}-${row ?? "x"}-${column ?? "x"}-${index}`}
                       className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-2 py-1.5 text-xs"
                     >
+                      <Badge variant="outline" className="h-auto px-1.5 py-0 text-[10px] font-mono text-muted-foreground">
+                        #{moveNumber}
+                      </Badge>
                       <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${teamStyle?.dot ?? "bg-muted-foreground/40"}`} />
                       <span className="max-w-28 truncate font-medium" title={playerName}>
                         {playerName}
@@ -610,6 +651,7 @@ export function LobbyPage() {
     () => searchParams.get("join") === "1" || searchParams.get("create") === "1",
   );
   const [playerName, setPlayerName] = useState("");
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
 
   const gameUuid = toCanonicalUuid(gameUuidParam);
   const privatePlayerUuid = toCanonicalUuid(privatePlayerUuidParam);
@@ -683,6 +725,20 @@ export function LobbyPage() {
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
   const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
   const showGameCompleteOverlay = isGameCompleted && dismissedCompleteForGameUuid !== gameUuid;
+  const status = getStatusPresentation(isCreateIntent ? "NOT_STARTED" : lobbyGame.data?.status);
+  const shortGameCode = gameUuid ? (toShortUuid(gameUuid) ?? gameUuid) : "";
+
+  const copyInviteLink = async () => {
+    if (!shortGameCode) return;
+    try {
+      const inviteUrl = `${window.location.origin}/lobby/${shortGameCode}`;
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopiedInviteLink(true);
+      window.setTimeout(() => setCopiedInviteLink(false), 1500);
+    } catch {
+      setCopiedInviteLink(false);
+    }
+  };
 
   if (!gameUuid && !isCreateIntent) {
     return <Navigate replace to="/" />;
@@ -717,32 +773,40 @@ export function LobbyPage() {
             </p>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-semibold">Lobby</h1>
+              {gameUuid ? (
+                <div className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2 py-1">
+                  <span className="text-xs text-muted-foreground">Code</span>
+                  <span className="font-mono text-xs">{formatUuid(gameUuid)}</span>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    onClick={copyInviteLink}
+                    type="button"
+                    aria-label="Copy invite link"
+                    title={copiedInviteLink ? "Copied invite link" : "Copy invite link"}
+                  >
+                    <IconLink />
+                  </Button>
+                </div>
+              ) : null}
+              <Badge variant="outline" className={`font-medium ${status.className}`}>
+                {isCreateIntent ? "Creating game" : status.label}
+              </Badge>
               {gameUuid && lobbyGame.isFetching ? (
                 <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
               ) : null}
             </div>
           </header>
-          <ModeToggle />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">Leave lobby</Link>
+            </Button>
+            <ModeToggle />
+          </div>
         </div>
 
-        <Card>
-          <CardContent className="grid gap-2 text-sm">
-            <InfoRow label="Game UUID:" value={gameUuid ? formatUuid(gameUuid) : "Pending creation"} />
-            {userPublicUuid ? (
-              <InfoRow label="Public Player UUID:" value={formatUuid(userPublicUuid)} />
-            ) : null}
-            {privatePlayerUuid ? (
-              <InfoRow label="Private Player UUID:" value={formatUuid(privatePlayerUuid)} />
-            ) : null}
-            {!privatePlayerUuid ? (
-              <InfoRow label="Mode:" value={isCreateIntent ? "Create game" : "Viewer (read-only)"} />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        {gameUuid ? (
+        {gameUuid && canStartGame ? (
           <LobbyActions
-            canStartGame={canStartGame}
             startGameMutation={startGameMutation}
             gameUuid={gameUuid}
             privatePlayerUuid={privatePlayerUuid}
