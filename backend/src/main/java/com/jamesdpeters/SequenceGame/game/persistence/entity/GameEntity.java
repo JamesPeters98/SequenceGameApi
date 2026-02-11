@@ -12,6 +12,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,12 +28,15 @@ public class GameEntity {
 
 	@Id
 	@Column(name = "id", nullable = false, updatable = false)
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID id;
 
 	@Column(name = "created_date", nullable = false)
+	@JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
 	private Instant createdDate;
 
 	@Column(name = "started_date")
+	@JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
 	private Instant startedDate;
 
 	@Enumerated(EnumType.STRING)
@@ -52,9 +57,11 @@ public class GameEntity {
 	private boolean deadCardDiscardedThisTurn;
 
 	@Column(name = "current_player_public_uuid")
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID currentPlayerPublicUuid;
 
 	@Column(name = "host_player_public_uuid")
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID hostPlayerPublicUuid;
 
 	@OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)

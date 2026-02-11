@@ -16,6 +16,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -43,6 +45,7 @@ public class GameMoveEntity {
 	private int moveOrder;
 
 	@Column(name = "player_public_uuid", nullable = false)
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID playerPublicUuid;
 
 	@Column(name = "row_index", nullable = false)
