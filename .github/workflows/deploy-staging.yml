@@ -40,6 +40,9 @@ jobs:
       - name: Build frontend Docker image
         run: |
           docker build \
+            --build-arg VITE_API_URL="${{ vars.STAGING_VITE_API_URL }}" \
+            --build-arg VITE_ALLOWED_HOSTS="${{ vars.STAGING_VITE_ALLOWED_HOSTS }}" \
+            --build-arg VITE_API_BEARER_TOKEN="${{ secrets.STAGING_VITE_API_BEARER_TOKEN }}" \
             -t registry.jamespeters.co.uk/sequence-game-staging-frontend:latest \
             ./frontend
 
