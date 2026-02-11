@@ -12,6 +12,7 @@ import java.util.UUID;
 
 public record GameResponse(
 				UUID uuid,
+				UUID userPublicUuid,
 				int maxPlayerSize,
 				int playerCount,
 				Game.Status status,
@@ -27,6 +28,7 @@ public record GameResponse(
 ) {
 	static GameResponse from(@NonNull Game game, @Nullable UUID publicPlayerUuid) {
 		return new GameResponse(game.getUuid(),
+						publicPlayerUuid,
 						game.getMaxPlayers(),
 						game.getPlayers().size(),
 						game.getStatus(),

@@ -473,15 +473,15 @@ function matchesPlayer(value: string | undefined, publicUuid?: string, privateUu
 
 function getPlayerColour(
   data: GameResponse | undefined,
-  publicPlayerUuid?: string,
+  userPublicUuid?: string,
   privatePlayerUuid?: string,
 ): "RED" | "BLUE" | "GREEN" | undefined {
   if (!data?.playerTeams) return undefined;
   if (privatePlayerUuid && data.playerTeams[privatePlayerUuid]) {
     return data.playerTeams[privatePlayerUuid];
   }
-  if (publicPlayerUuid && data.playerTeams[publicPlayerUuid]) {
-    return data.playerTeams[publicPlayerUuid];
+  if (userPublicUuid && data.playerTeams[userPublicUuid]) {
+    return data.playerTeams[userPublicUuid];
   }
   return undefined;
 }
@@ -493,7 +493,6 @@ export function LobbyPage() {
   const [selectedCard, setSelectedCard] = useState<PlayingCard | null>(null);
   const [isCompleteOverlayDismissed, setIsCompleteOverlayDismissed] = useState(false);
 
-  const publicPlayerUuid = searchParams.get("publicPlayerUuid") ?? undefined;
   const privatePlayerUuid = searchParams.get("privatePlayerUuid") ?? undefined;
   const isViewer = !privatePlayerUuid;
 
@@ -541,11 +540,12 @@ export function LobbyPage() {
     return <Navigate replace to="/" />;
   }
 
-  const isHost = matchesPlayer(lobbyGame.data?.host, publicPlayerUuid, privatePlayerUuid);
+  const userPublicUuid = lobbyGame.data?.userPublicUuid;
+  const isHost = matchesPlayer(lobbyGame.data?.host, userPublicUuid, privatePlayerUuid);
   const isInProgress = lobbyGame.data?.status === "IN_PROGRESS";
   const canStartGame = Boolean(privatePlayerUuid) && isHost && !isInProgress;
-  const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, publicPlayerUuid, privatePlayerUuid);
-  const playerColour = getPlayerColour(lobbyGame.data, publicPlayerUuid, privatePlayerUuid);
+  const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, userPublicUuid, privatePlayerUuid);
+  const playerColour = getPlayerColour(lobbyGame.data, userPublicUuid, privatePlayerUuid);
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
   const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
   const showGameCompleteOverlay = isGameCompleted && !isCompleteOverlayDismissed;
@@ -600,8 +600,8 @@ export function LobbyPage() {
         <Card>
           <CardContent className="grid gap-2 text-sm">
             <InfoRow label="Game UUID:" value={gameUuid} />
-            {publicPlayerUuid ? (
-              <InfoRow label="Public Player UUID:" value={publicPlayerUuid} />
+            {userPublicUuid ? (
+              <InfoRow label="Public Player UUID:" value={userPublicUuid} />
             ) : null}
             {privatePlayerUuid ? (
               <InfoRow label="Private Player UUID:" value={privatePlayerUuid} />

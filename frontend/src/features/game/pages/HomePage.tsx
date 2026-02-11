@@ -70,7 +70,6 @@ export function HomePage() {
                   setJoinGameUuid(data.gameUuid);
                   navigate(
                     buildLobbyUrl(data.gameUuid, {
-                      publicPlayerUuid: data.publicPlayerUuid,
                       privatePlayerUuid: data.privatePlayerUuid,
                     }),
                   );
@@ -126,7 +125,6 @@ export function HomePage() {
                   onSuccess: (data) => {
                     navigate(
                       buildLobbyUrl(data.gameUuid, {
-                        publicPlayerUuid: data.publicPlayerUuid,
                         privatePlayerUuid: data.privatePlayerUuid,
                       }),
                     );
