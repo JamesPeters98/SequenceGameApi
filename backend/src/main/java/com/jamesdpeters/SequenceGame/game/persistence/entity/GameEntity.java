@@ -12,7 +12,9 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
@@ -39,15 +41,17 @@ public class GameEntity {
 	@JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
 	private Instant startedDate;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "status", nullable = false, length = 32)
+	@Column(name = "status", nullable = false, length = 32, columnDefinition = "game_status")
 	private Game.Status status;
 
 	@Column(name = "max_players", nullable = false)
 	private int maxPlayers;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "winner", length = 16)
+	@Column(name = "winner", length = 16, columnDefinition = "chip_colour")
 	private ChipColour winner;
 
 	@Column(name = "winning_sequence_length", nullable = false)

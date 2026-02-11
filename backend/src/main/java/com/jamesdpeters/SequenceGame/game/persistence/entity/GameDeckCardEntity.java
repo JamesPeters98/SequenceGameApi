@@ -16,6 +16,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 @Entity
 @Table(
@@ -29,7 +31,7 @@ import lombok.Setter;
 public class GameDeckCardEntity {
 
 	@Id
-	@SequenceGenerator(name = "game_deck_card_seq_gen", sequenceName = "game_deck_card_seq")
+	@SequenceGenerator(name = "game_deck_card_seq_gen", sequenceName = "game_deck_card_seq", allocationSize = 50)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_deck_card_seq_gen")
 	private Long id;
 
@@ -37,15 +39,17 @@ public class GameDeckCardEntity {
 	@JoinColumn(name = "game_id", nullable = false)
 	private GameEntity game;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "pile", nullable = false, length = 16)
+	@Column(name = "pile", nullable = false, length = 16, columnDefinition = "deck_pile")
 	private DeckPile pile;
 
 	@Column(name = "card_order", nullable = false)
 	private int cardOrder;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "card_suit", nullable = false, length = 16)
+	@Column(name = "card_suit", nullable = false, length = 16, columnDefinition = "card_suit")
 	private Card.Suit cardSuit;
 
 	@Column(name = "card_value", nullable = false)

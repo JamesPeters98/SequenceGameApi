@@ -30,7 +30,7 @@ import java.util.UUID;
 public class GameTurnCountEntity {
 
 	@Id
-	@SequenceGenerator(name = "game_turn_count_seq_gen", sequenceName = "game_turn_count_seq")
+	@SequenceGenerator(name = "game_turn_count_seq_gen", sequenceName = "game_turn_count_seq", allocationSize = 50)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_turn_count_seq_gen")
 	private Long id;
 

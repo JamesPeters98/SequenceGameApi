@@ -17,6 +17,8 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 
 @Entity
 @Table(
@@ -30,7 +32,7 @@ import lombok.Setter;
 public class GameBoardSpaceEntity {
 
 	@Id
-	@SequenceGenerator(name = "game_board_space_seq_gen", sequenceName = "game_board_space_seq")
+	@SequenceGenerator(name = "game_board_space_seq_gen", sequenceName = "game_board_space_seq", allocationSize = 50)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_board_space_seq_gen")
 	private Long id;
 
@@ -44,15 +46,17 @@ public class GameBoardSpaceEntity {
 	@Column(name = "column_index", nullable = false)
 	private int columnIndex;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "card_suit", length = 16)
+	@Column(name = "card_suit", length = 16, columnDefinition = "card_suit")
 	private Card.Suit cardSuit;
 
 	@Column(name = "card_value")
 	private Integer cardValue;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "chip_colour", length = 16)
+	@Column(name = "chip_colour", length = 16, columnDefinition = "chip_colour")
 	private ChipColour chipColour;
 
 	@Column(name = "part_of_sequence", nullable = false)

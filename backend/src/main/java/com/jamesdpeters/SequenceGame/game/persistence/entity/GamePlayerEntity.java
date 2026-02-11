@@ -21,7 +21,9 @@ import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.util.ArrayList;
@@ -74,8 +76,9 @@ public class GamePlayerEntity {
 	@Column(name = "turn_order", nullable = false)
 	private int turnOrder;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "team", length = 16)
+	@Column(name = "team", length = 16, columnDefinition = "chip_colour")
 	private ChipColour team;
 
 	@OneToMany(mappedBy = "player", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -16,7 +16,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
 import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
@@ -33,7 +35,7 @@ import java.util.UUID;
 public class GameMoveEntity {
 
 	@Id
-	@SequenceGenerator(name = "game_move_seq_gen", sequenceName = "game_move_seq")
+	@SequenceGenerator(name = "game_move_seq_gen", sequenceName = "game_move_seq", allocationSize = 50)
 	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_move_seq_gen")
 	private Long id;
 
@@ -54,8 +56,9 @@ public class GameMoveEntity {
 	@Column(name = "column_index", nullable = false)
 	private int columnIndex;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "card_suit", nullable = false, length = 16)
+	@Column(name = "card_suit", nullable = false, length = 16, columnDefinition = "card_suit")
 	private Card.Suit cardSuit;
 
 	@Column(name = "card_value", nullable = false)
