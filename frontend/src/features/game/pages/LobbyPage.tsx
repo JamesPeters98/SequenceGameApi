@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useParams } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import type { components } from "@/api/schema";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
+import { toCanonicalUuid, toShortUuid } from "@/lib/uuid";
 
 const suitIcons = {
   SPADES: "/suit-spade-fill-svgrepo-com.svg",
@@ -40,6 +41,11 @@ function formatCardValue(value?: number): string {
   if (value === 13) return "K";
   if (!value) return "-";
   return String(value);
+}
+
+function formatUuid(value?: string): string {
+  if (!value) return "-";
+  return toShortUuid(value) ?? value;
 }
 
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
@@ -297,9 +303,9 @@ function normalizeMoveHistoryEntry(entry: MoveHistoryEntry): { playerUuid?: stri
 }
 
 function GameInfoSidebar({ data }: { data: GameResponse }) {
-  const hostName = data.host ? data.playerNames?.[data.host] ?? data.host : "-";
+  const hostName = data.host ? data.playerNames?.[data.host] ?? formatUuid(data.host) : "-";
   const currentTurnName = data.currentPlayerTurn
-    ? data.playerNames?.[data.currentPlayerTurn] ?? data.currentPlayerTurn
+    ? data.playerNames?.[data.currentPlayerTurn] ?? formatUuid(data.currentPlayerTurn)
     : "-";
   const moveHistory = (data.moveHistory ?? [])
     .map(normalizeMoveHistoryEntry)
@@ -331,7 +337,7 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
               {data.players.map((playerUuid) => {
                 const playerTeam = data.playerTeams?.[playerUuid];
                 const colourStyle = playerTeam ? teamColourStyles[playerTeam] : null;
-                const playerName = data.playerNames?.[playerUuid] ?? playerUuid;
+                const playerName = data.playerNames?.[playerUuid] ?? formatUuid(playerUuid);
 
                 const isCurrentTurn = data.currentPlayerTurn === playerUuid;
 
@@ -371,7 +377,7 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
               <div className="grid gap-2">
                 {moveHistory.map((entry, index) => {
                   const playerUuid = entry.playerUuid;
-                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? playerUuid : "Unknown player";
+                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? formatUuid(playerUuid) : "Unknown player";
                   const playerTeam = playerUuid ? data.playerTeams?.[playerUuid] : undefined;
                   const teamStyle = playerTeam ? teamColourStyles[playerTeam] : null;
                   const row = entry.move?.row;
@@ -473,28 +479,27 @@ function matchesPlayer(value: string | undefined, publicUuid?: string, privateUu
 
 function getPlayerColour(
   data: GameResponse | undefined,
-  publicPlayerUuid?: string,
+  userPublicUuid?: string,
   privatePlayerUuid?: string,
 ): "RED" | "BLUE" | "GREEN" | undefined {
   if (!data?.playerTeams) return undefined;
   if (privatePlayerUuid && data.playerTeams[privatePlayerUuid]) {
     return data.playerTeams[privatePlayerUuid];
   }
-  if (publicPlayerUuid && data.playerTeams[publicPlayerUuid]) {
-    return data.playerTeams[publicPlayerUuid];
+  if (userPublicUuid && data.playerTeams[userPublicUuid]) {
+    return data.playerTeams[userPublicUuid];
   }
   return undefined;
 }
 
 export function LobbyPage() {
   const queryClient = useQueryClient();
-  const { gameUuid } = useParams();
-  const [searchParams] = useSearchParams();
+  const { gameUuid: gameUuidParam, privatePlayerUuid: privatePlayerUuidParam } = useParams();
   const [selectedCard, setSelectedCard] = useState<PlayingCard | null>(null);
   const [isCompleteOverlayDismissed, setIsCompleteOverlayDismissed] = useState(false);
 
-  const publicPlayerUuid = searchParams.get("publicPlayerUuid") ?? undefined;
-  const privatePlayerUuid = searchParams.get("privatePlayerUuid") ?? undefined;
+  const gameUuid = toCanonicalUuid(gameUuidParam);
+  const privatePlayerUuid = toCanonicalUuid(privatePlayerUuidParam);
   const isViewer = !privatePlayerUuid;
 
   const lobbyGame = useQuery({
@@ -541,11 +546,12 @@ export function LobbyPage() {
     return <Navigate replace to="/" />;
   }
 
-  const isHost = matchesPlayer(lobbyGame.data?.host, publicPlayerUuid, privatePlayerUuid);
+  const userPublicUuid = lobbyGame.data?.userPublicUuid;
+  const isHost = matchesPlayer(lobbyGame.data?.host, userPublicUuid, privatePlayerUuid);
   const isInProgress = lobbyGame.data?.status === "IN_PROGRESS";
   const canStartGame = Boolean(privatePlayerUuid) && isHost && !isInProgress;
-  const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, publicPlayerUuid, privatePlayerUuid);
-  const playerColour = getPlayerColour(lobbyGame.data, publicPlayerUuid, privatePlayerUuid);
+  const isPlayersTurn = matchesPlayer(lobbyGame.data?.currentPlayerTurn, userPublicUuid, privatePlayerUuid);
+  const playerColour = getPlayerColour(lobbyGame.data, userPublicUuid, privatePlayerUuid);
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
   const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
   const showGameCompleteOverlay = isGameCompleted && !isCompleteOverlayDismissed;
@@ -599,12 +605,12 @@ export function LobbyPage() {
 
         <Card>
           <CardContent className="grid gap-2 text-sm">
-            <InfoRow label="Game UUID:" value={gameUuid} />
-            {publicPlayerUuid ? (
-              <InfoRow label="Public Player UUID:" value={publicPlayerUuid} />
+            <InfoRow label="Game UUID:" value={formatUuid(gameUuid)} />
+            {userPublicUuid ? (
+              <InfoRow label="Public Player UUID:" value={formatUuid(userPublicUuid)} />
             ) : null}
             {privatePlayerUuid ? (
-              <InfoRow label="Private Player UUID:" value={privatePlayerUuid} />
+              <InfoRow label="Private Player UUID:" value={formatUuid(privatePlayerUuid)} />
             ) : null}
             {!privatePlayerUuid ? (
               <InfoRow label="Mode:" value="Viewer (read-only)" />

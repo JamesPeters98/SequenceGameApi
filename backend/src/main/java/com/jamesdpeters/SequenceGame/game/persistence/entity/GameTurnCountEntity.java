@@ -8,10 +8,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -27,7 +30,8 @@ import java.util.UUID;
 public class GameTurnCountEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "game_turn_count_seq_gen", sequenceName = "game_turn_count_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_turn_count_seq_gen")
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -35,6 +39,7 @@ public class GameTurnCountEntity {
 	private GameEntity game;
 
 	@Column(name = "player_public_uuid", nullable = false)
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID playerPublicUuid;
 
 	@Column(name = "turn_count", nullable = false)

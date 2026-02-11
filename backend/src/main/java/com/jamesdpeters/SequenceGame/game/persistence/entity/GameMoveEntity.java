@@ -11,10 +11,15 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
+import org.hibernate.type.SqlTypes;
 
 import java.util.UUID;
 
@@ -30,7 +35,8 @@ import java.util.UUID;
 public class GameMoveEntity {
 
 	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@SequenceGenerator(name = "game_move_seq_gen", sequenceName = "game_move_seq", allocationSize = 50)
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "game_move_seq_gen")
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -41,6 +47,7 @@ public class GameMoveEntity {
 	private int moveOrder;
 
 	@Column(name = "player_public_uuid", nullable = false)
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID playerPublicUuid;
 
 	@Column(name = "row_index", nullable = false)
@@ -49,8 +56,9 @@ public class GameMoveEntity {
 	@Column(name = "column_index", nullable = false)
 	private int columnIndex;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "card_suit", nullable = false, length = 16)
+	@Column(name = "card_suit", nullable = false, length = 16, columnDefinition = "card_suit")
 	private Card.Suit cardSuit;
 
 	@Column(name = "card_value", nullable = false)
