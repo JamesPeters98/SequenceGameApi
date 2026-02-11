@@ -218,6 +218,8 @@ export interface components {
             board?: components["schemas"]["BoardResponse"];
             /** Format: uuid */
             currentPlayerTurn?: string;
+            /** Format: uuid */
+            userPublicUuid?: string;
             playerHand?: components["schemas"]["Card"][];
             /** @enum {string} */
             winner?: "RED" | "BLUE" | "GREEN";

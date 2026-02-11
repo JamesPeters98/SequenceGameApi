@@ -4,19 +4,18 @@ import { useNavigate } from "react-router-dom";
 
 import { ModeToggle } from "@/components/mode-toggle";
 import { createGameSession, joinGameSession } from "@/features/game/api";
+import { toCanonicalUuid, toShortUuid } from "@/lib/uuid";
 
 function buildLobbyUrl(
   gameUuid: string,
-  session: Record<string, string | undefined>,
+  privatePlayerUuid?: string,
 ): string {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(session)) {
-    if (value) {
-      query.set(key, value);
-    }
+  const shortGameUuid = toShortUuid(gameUuid) ?? gameUuid;
+  if (privatePlayerUuid) {
+    const shortPrivatePlayerUuid = toShortUuid(privatePlayerUuid) ?? privatePlayerUuid;
+    return `/lobby/${shortGameUuid}/${shortPrivatePlayerUuid}`;
   }
-  const queryText = query.toString();
-  return queryText ? `/lobby/${gameUuid}?${queryText}` : `/lobby/${gameUuid}`;
+  return `/lobby/${shortGameUuid}`;
 }
 
 export function HomePage() {
@@ -67,13 +66,8 @@ export function HomePage() {
             onClick={() =>
               createGame.mutate({ playerName: createPlayerName }, {
                 onSuccess: (data) => {
-                  setJoinGameUuid(data.gameUuid);
-                  navigate(
-                    buildLobbyUrl(data.gameUuid, {
-                      publicPlayerUuid: data.publicPlayerUuid,
-                      privatePlayerUuid: data.privatePlayerUuid,
-                    }),
-                  );
+                  setJoinGameUuid(toShortUuid(data.gameUuid) ?? data.gameUuid);
+                  navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid));
                 },
               })
             }
@@ -119,21 +113,21 @@ export function HomePage() {
 
           <button
             className="inline-flex w-fit items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-            onClick={() =>
+            onClick={() => {
+              const canonicalGameUuid = toCanonicalUuid(joinGameUuid);
+              if (!canonicalGameUuid) {
+                return;
+              }
+
               joinGame.mutate(
-                { gameUuid: joinGameUuid.trim(), playerName: joinPlayerName },
+                { gameUuid: canonicalGameUuid, playerName: joinPlayerName },
                 {
                   onSuccess: (data) => {
-                    navigate(
-                      buildLobbyUrl(data.gameUuid, {
-                        publicPlayerUuid: data.publicPlayerUuid,
-                        privatePlayerUuid: data.privatePlayerUuid,
-                      }),
-                    );
+                    navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid));
                   },
                 },
-              )
-            }
+              );
+            }}
             disabled={joinGame.isPending || joinGameUuid.trim().length === 0}
             type="button"
           >
@@ -166,7 +160,13 @@ export function HomePage() {
 
           <button
             className="inline-flex w-fit items-center justify-center rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
-            onClick={() => navigate(`/lobby/${viewGameUuid.trim()}`)}
+            onClick={() => {
+              const normalizedGameUuid = toCanonicalUuid(viewGameUuid);
+              if (!normalizedGameUuid) {
+                return;
+              }
+              navigate(`/lobby/${toShortUuid(normalizedGameUuid) ?? normalizedGameUuid}`);
+            }}
             disabled={viewGameUuid.trim().length === 0}
             type="button"
           >
