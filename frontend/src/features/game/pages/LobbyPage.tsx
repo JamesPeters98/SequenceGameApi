@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import type { components } from "@/api/schema";
-import { getGameDetails, getGameDetailsAsViewer, startGame, submitMove } from "@/features/game/api";
+import { createGameSession, getGameDetails, getGameDetailsAsViewer, joinGameSession, startGame, submitMove } from "@/features/game/api";
 import { GameBoard } from "@/features/game/components/GameBoard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,18 @@ function formatUuid(value?: string): string {
   return toShortUuid(value) ?? value;
 }
 
+function buildLobbyUrl(
+  gameUuid: string,
+  privatePlayerUuid?: string,
+): string {
+  const shortGameUuid = toShortUuid(gameUuid) ?? gameUuid;
+  if (privatePlayerUuid) {
+    const shortPrivatePlayerUuid = toShortUuid(privatePlayerUuid) ?? privatePlayerUuid;
+    return `/lobby/${shortGameUuid}/${shortPrivatePlayerUuid}`;
+  }
+  return `/lobby/${shortGameUuid}`;
+}
+
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -61,6 +73,101 @@ function AlertBanner({ message }: { message: string }) {
   return (
     <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
       {message}
+    </div>
+  );
+}
+
+function PlayerNameDialog({
+  isOpen,
+  mode,
+  playerName,
+  isPending,
+  errorMessage,
+  onPlayerNameChange,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  mode: "create" | "join";
+  playerName: string;
+  isPending: boolean;
+  errorMessage: string | null;
+  onPlayerNameChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  if (!isOpen) return null;
+
+  const isCreateMode = mode === "create";
+  const title = isCreateMode ? "Create a new game" : "Join this lobby";
+  const description = isCreateMode
+    ? "Enter your player name to create and host a new game."
+    : "Enter your player name to join this game.";
+  const submitLabel = isCreateMode ? "Create game" : "Join game";
+  const trimmedName = playerName.trim();
+  const showEmptyNameError = hasAttemptedSubmit && trimmedName.length === 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (trimmedName.length === 0) {
+                setHasAttemptedSubmit(true);
+                return;
+              }
+              onSubmit();
+            }}
+          >
+          <p className="text-sm text-muted-foreground">{description}</p>
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Player name</span>
+            <input
+              autoFocus
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => {
+                onPlayerNameChange(event.target.value);
+                if (hasAttemptedSubmit) {
+                  setHasAttemptedSubmit(false);
+                }
+              }}
+              placeholder="Enter your name"
+              type="text"
+              value={playerName}
+            />
+            {showEmptyNameError ? (
+              <span className="text-xs text-destructive">Please enter a player name.</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">This name will be visible to other players.</span>
+            )}
+          </label>
+          {errorMessage ? (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          ) : null}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={onClose} type="button">
+              Cancel
+            </Button>
+            <Button
+              disabled={isPending}
+              type="submit"
+            >
+              {isPending ? (isCreateMode ? "Creating..." : "Joining...") : submitLabel}
+            </Button>
+          </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -493,13 +600,20 @@ function getPlayerColour(
 }
 
 export function LobbyPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { gameUuid: gameUuidParam, privatePlayerUuid: privatePlayerUuidParam } = useParams();
   const [selectedCard, setSelectedCard] = useState<PlayingCard | null>(null);
-  const [isCompleteOverlayDismissed, setIsCompleteOverlayDismissed] = useState(false);
+  const [dismissedCompleteForGameUuid, setDismissedCompleteForGameUuid] = useState<string | null>(null);
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(
+    () => searchParams.get("join") === "1" || searchParams.get("create") === "1",
+  );
+  const [playerName, setPlayerName] = useState("");
 
   const gameUuid = toCanonicalUuid(gameUuidParam);
   const privatePlayerUuid = toCanonicalUuid(privatePlayerUuidParam);
+  const isCreateIntent = !gameUuid && searchParams.get("create") === "1";
   const isViewer = !privatePlayerUuid;
 
   const lobbyGame = useQuery({
@@ -542,9 +656,23 @@ export function LobbyPage() {
     },
   });
 
-  if (!gameUuid) {
-    return <Navigate replace to="/" />;
-  }
+  const joinGameMutation = useMutation({
+    mutationFn: joinGameSession,
+    onSuccess: (data) => {
+      setIsPlayerDialogOpen(false);
+      setPlayerName("");
+      navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid), { replace: true });
+    },
+  });
+
+  const createGameMutation = useMutation({
+    mutationFn: createGameSession,
+    onSuccess: (data) => {
+      setIsPlayerDialogOpen(false);
+      setPlayerName("");
+      navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid), { replace: true });
+    },
+  });
 
   const userPublicUuid = lobbyGame.data?.userPublicUuid;
   const isHost = matchesPlayer(lobbyGame.data?.host, userPublicUuid, privatePlayerUuid);
@@ -554,17 +682,11 @@ export function LobbyPage() {
   const playerColour = getPlayerColour(lobbyGame.data, userPublicUuid, privatePlayerUuid);
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
   const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
-  const showGameCompleteOverlay = isGameCompleted && !isCompleteOverlayDismissed;
+  const showGameCompleteOverlay = isGameCompleted && dismissedCompleteForGameUuid !== gameUuid;
 
-  useEffect(() => {
-    setIsCompleteOverlayDismissed(false);
-  }, [gameUuid]);
-
-  useEffect(() => {
-    if (!isGameCompleted) {
-      setIsCompleteOverlayDismissed(false);
-    }
-  }, [isGameCompleted]);
+  if (!gameUuid && !isCreateIntent) {
+    return <Navigate replace to="/" />;
+  }
 
   const alerts = collectAlerts(lobbyGame, startGameMutation, moveMutation);
 
@@ -595,7 +717,7 @@ export function LobbyPage() {
             </p>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-semibold">Lobby</h1>
-              {lobbyGame.isFetching ? (
+              {gameUuid && lobbyGame.isFetching ? (
                 <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
               ) : null}
             </div>
@@ -605,7 +727,7 @@ export function LobbyPage() {
 
         <Card>
           <CardContent className="grid gap-2 text-sm">
-            <InfoRow label="Game UUID:" value={formatUuid(gameUuid)} />
+            <InfoRow label="Game UUID:" value={gameUuid ? formatUuid(gameUuid) : "Pending creation"} />
             {userPublicUuid ? (
               <InfoRow label="Public Player UUID:" value={formatUuid(userPublicUuid)} />
             ) : null}
@@ -613,29 +735,38 @@ export function LobbyPage() {
               <InfoRow label="Private Player UUID:" value={formatUuid(privatePlayerUuid)} />
             ) : null}
             {!privatePlayerUuid ? (
-              <InfoRow label="Mode:" value="Viewer (read-only)" />
+              <InfoRow label="Mode:" value={isCreateIntent ? "Create game" : "Viewer (read-only)"} />
             ) : null}
           </CardContent>
         </Card>
 
-        <LobbyActions
-          canStartGame={canStartGame}
-          startGameMutation={startGameMutation}
-          gameUuid={gameUuid}
-          privatePlayerUuid={privatePlayerUuid}
-        />
+        {gameUuid ? (
+          <LobbyActions
+            canStartGame={canStartGame}
+            startGameMutation={startGameMutation}
+            gameUuid={gameUuid}
+            privatePlayerUuid={privatePlayerUuid}
+          />
+        ) : null}
 
         {alerts.map((alert) => (
           <AlertBanner key={alert.key} message={alert.message} />
         ))}
 
-        {isViewer ? (
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-            Viewer mode is read-only. Moves and card selection are disabled.
+        {gameUuid && isViewer ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            <span>Viewer mode is read-only. Moves and card selection are disabled.</span>
+            <Button
+              variant="outline"
+              onClick={() => setIsPlayerDialogOpen(true)}
+              type="button"
+            >
+              Join as player
+            </Button>
           </div>
         ) : null}
 
-        {lobbyGame.data ? (
+        {gameUuid && lobbyGame.data ? (
           <>
             {!isViewer ? (
               <StatusBanner
@@ -663,14 +794,52 @@ export function LobbyPage() {
         ) : (
           <Card size="sm">
             <CardContent className="text-sm text-muted-foreground">
-              Loading lobby details...
+              {isCreateIntent ? "Create a game to enter the lobby." : "Loading lobby details..."}
             </CardContent>
           </Card>
         )}
 
-        {lobbyGame.data && showGameCompleteOverlay && (
-          <GameCompleteOverlay data={lobbyGame.data} onDismiss={() => setIsCompleteOverlayDismissed(true)} />
+        {gameUuid && lobbyGame.data && showGameCompleteOverlay && (
+          <GameCompleteOverlay data={lobbyGame.data} onDismiss={() => setDismissedCompleteForGameUuid(gameUuid)} />
         )}
+
+        <PlayerNameDialog
+          isOpen={isPlayerDialogOpen}
+          mode={isCreateIntent ? "create" : "join"}
+          playerName={playerName}
+          isPending={isCreateIntent ? createGameMutation.isPending : joinGameMutation.isPending}
+          errorMessage={
+            isCreateIntent
+              ? (createGameMutation.isError ? createGameMutation.error.message : null)
+              : (joinGameMutation.isError ? joinGameMutation.error.message : null)
+          }
+          onPlayerNameChange={setPlayerName}
+          onClose={() => {
+            setIsPlayerDialogOpen(false);
+            setPlayerName("");
+            joinGameMutation.reset();
+            createGameMutation.reset();
+            if (searchParams.has("join") || searchParams.has("create")) {
+              const nextSearchParams = new URLSearchParams(searchParams);
+              nextSearchParams.delete("join");
+              nextSearchParams.delete("create");
+              setSearchParams(nextSearchParams, { replace: true });
+            }
+          }}
+          onSubmit={() => {
+            if (isCreateIntent) {
+              createGameMutation.mutate({ playerName });
+              return;
+            }
+            if (!gameUuid) {
+              return;
+            }
+            joinGameMutation.mutate({
+              gameUuid,
+              playerName,
+            });
+          }}
+        />
       </div>
     </div>
   );
