@@ -50,4 +50,4 @@ jobs:
       - name: Trigger staging deploy
         if: success()
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.STAGING_COOLIFY_API_TOKEN }}" "${{ secrets.STAGING_COOLIFY_WEBHOOK_URL }}"
+          curl -H "Authorization: Bearer ${{ secrets.COOLIFY_API_TOKEN }}" "${{ secrets.STAGING_COOLIFY_WEBHOOK_URL }}"
