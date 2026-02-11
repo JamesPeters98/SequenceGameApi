@@ -12,6 +12,10 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.dialect.type.PostgreSQLEnumJdbcType;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -26,23 +30,28 @@ public class GameEntity {
 
 	@Id
 	@Column(name = "id", nullable = false, updatable = false)
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID id;
 
 	@Column(name = "created_date", nullable = false)
+	@JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
 	private Instant createdDate;
 
 	@Column(name = "started_date")
+	@JdbcTypeCode(SqlTypes.TIMESTAMP_WITH_TIMEZONE)
 	private Instant startedDate;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "status", nullable = false, length = 32)
+	@Column(name = "status", nullable = false, length = 32, columnDefinition = "game_status")
 	private Game.Status status;
 
 	@Column(name = "max_players", nullable = false)
 	private int maxPlayers;
 
+	@JdbcType(PostgreSQLEnumJdbcType.class)
 	@Enumerated(EnumType.STRING)
-	@Column(name = "winner", length = 16)
+	@Column(name = "winner", length = 16, columnDefinition = "chip_colour")
 	private ChipColour winner;
 
 	@Column(name = "winning_sequence_length", nullable = false)
@@ -52,9 +61,11 @@ public class GameEntity {
 	private boolean deadCardDiscardedThisTurn;
 
 	@Column(name = "current_player_public_uuid")
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID currentPlayerPublicUuid;
 
 	@Column(name = "host_player_public_uuid")
+	@JdbcTypeCode(SqlTypes.UUID)
 	private UUID hostPlayerPublicUuid;
 
 	@OneToMany(mappedBy = "game", cascade = CascadeType.ALL, orphanRemoval = true)
