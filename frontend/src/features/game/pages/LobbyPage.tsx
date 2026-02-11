@@ -203,61 +203,63 @@ function PlayerHand({
   hand,
   selectedCard,
   onSelectCard,
+  isInteractive,
+  variant = "default",
 }: {
   hand: PlayingCard[];
   selectedCard: PlayingCard | null;
   onSelectCard: (card: PlayingCard | null) => void;
+  isInteractive: boolean;
+  variant?: "default" | "dock";
 }) {
   if (hand.length === 0) {
     return null;
   }
 
+  const isDock = variant === "dock";
+
   return (
-    <Card size="sm">
-      <CardContent className="px-4">
-        <p className="mb-2 text-sm font-medium text-muted-foreground">Your hand</p>
-        <div className="flex flex-wrap gap-2">
-          {hand.map((card, index) => {
-            const isJack = Boolean(card.oneEyedJack || card.twoEyedJack);
-            const isSelected = selectedCard !== null && isSameCard(card, selectedCard);
-            const suit = card.suit;
-            const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
+    <div className={isDock ? "flex flex-nowrap gap-2" : "flex flex-wrap gap-2"}>
+      {hand.map((card, index) => {
+        const isJack = Boolean(card.oneEyedJack || card.twoEyedJack);
+        const isSelected = selectedCard !== null && isSameCard(card, selectedCard);
+        const suit = card.suit;
+        const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
 
-            let jackLabel: string | null = null;
-            if (card.twoEyedJack) jackLabel = "Wild";
-            else if (card.oneEyedJack) jackLabel = "Remove";
+        let jackLabel: string | null = null;
+        if (card.twoEyedJack) jackLabel = "Wild";
+        else if (card.oneEyedJack) jackLabel = "Remove";
 
-            return (
-              <button
-                key={`${card.suit ?? "unknown"}-${card.value ?? "x"}-${index}`}
-                type="button"
-                onClick={() => onSelectCard(isSelected ? null : card)}
-                className="focus:outline-none"
-              >
-                <Badge
-                  variant="outline"
-                  className={`h-auto cursor-pointer gap-2 px-2 py-1 font-mono text-xs transition-all ${
-                    isSelected
-                      ? "ring-2 ring-primary border-primary bg-primary/10"
-                      : isJack
-                        ? "border-purple-500 animate-pulse bg-background/60"
-                        : "border-border bg-background/60"
-                  }`}
-                >
-                  <span className={isRedSuit ? "text-red-500" : "text-foreground"}>
-                    {formatCardValue(card.value)}
-                  </span>
-                  {suit ? <SuitIcon suit={suit} /> : null}
-                  {jackLabel ? (
-                    <span className="text-[10px] font-semibold text-purple-500">{jackLabel}</span>
-                  ) : null}
-                </Badge>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+        return (
+          <button
+            key={`${card.suit ?? "unknown"}-${card.value ?? "x"}-${index}`}
+            type="button"
+            onClick={() => onSelectCard(isSelected ? null : card)}
+            className="focus:outline-none"
+            disabled={!isInteractive}
+          >
+            <Badge
+              variant="outline"
+              className={`h-auto cursor-pointer gap-2 px-2 py-1 font-mono text-xs transition-all ${
+                isSelected
+                  ? "ring-2 ring-primary border-primary bg-primary/10"
+                  : isJack
+                    ? "border-purple-500 animate-pulse bg-background/60"
+                    : "border-border bg-background/60"
+              } ${!isInteractive ? "opacity-60" : ""} ${isDock ? "px-3 py-2 text-sm" : ""}`}
+            >
+              <span className={isRedSuit ? "text-red-500" : "text-foreground"}>
+                {formatCardValue(card.value)}
+              </span>
+              {suit ? <SuitIcon suit={suit} /> : null}
+              {jackLabel ? (
+                <span className="text-[10px] font-semibold text-purple-500">{jackLabel}</span>
+              ) : null}
+            </Badge>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -267,36 +269,40 @@ const teamColourStyles: Record<string, { bg: string; text: string; dot: string }
   GREEN: { bg: "bg-green-500/10", text: "text-green-500", dot: "bg-green-500" },
 };
 
-function StatusBanner({
+function PlayerStatusRow({
+  isViewer,
+  isInProgress,
   isPlayersTurn,
   playerColour,
-  isInProgress,
 }: {
+  isViewer: boolean;
+  isInProgress: boolean;
   isPlayersTurn: boolean;
   playerColour?: "RED" | "BLUE" | "GREEN";
-  isInProgress: boolean;
 }) {
-  if (!isInProgress) return null;
+  if (isViewer) return null;
 
   const colourStyle = playerColour ? teamColourStyles[playerColour] : null;
+  const turnLabel = isInProgress
+    ? (isPlayersTurn ? "Your turn" : "Waiting for turn")
+    : "Waiting for game start";
+  const turnClass = isInProgress
+    ? (isPlayersTurn
+      ? "border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400"
+      : "border-border bg-muted text-muted-foreground")
+    : "border-border bg-muted text-muted-foreground";
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       {colourStyle ? (
-        <div className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium ${colourStyle.bg} ${colourStyle.text}`}>
-          <span className={`inline-block h-3 w-3 rounded-full ${colourStyle.dot}`} />
+        <Badge variant="outline" className={`gap-1.5 ${colourStyle.bg} ${colourStyle.text}`}>
+          <span className={`inline-block h-2 w-2 rounded-full ${colourStyle.dot}`} />
           Team {playerColour}
-        </div>
+        </Badge>
       ) : null}
-      <div
-        className={`rounded-lg border px-4 py-2 text-sm font-medium ${
-          isPlayersTurn
-            ? "border-green-500/40 bg-green-500/10 text-green-500 animate-pulse"
-            : "border-border bg-muted text-muted-foreground"
-        }`}
-      >
-        {isPlayersTurn ? "Your turn!" : "Waiting for opponent..."}
-      </div>
+      <Badge variant="outline" className={turnClass}>
+        {turnLabel}
+      </Badge>
     </div>
   );
 }
@@ -565,6 +571,7 @@ function GameContent({
   onSpaceClick,
   isMovePending,
   isInteractive,
+  hasHandDock,
 }: {
   data: GameResponse;
   selectedCard: PlayingCard | null;
@@ -572,21 +579,31 @@ function GameContent({
   onSpaceClick: (space: BoardSpace) => void;
   isMovePending: boolean;
   isInteractive: boolean;
+  hasHandDock: boolean;
 }) {
+  const boardMaxSize = hasHandDock
+    ? "max(24rem, min(calc(100dvh - 20rem), calc(100vw - 30rem)))"
+    : "max(24rem, min(calc(100dvh - 14rem), calc(100vw - 30rem)))";
+
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-start">
-      <Card size="sm" className="w-full md:max-w-3xl">
-        <CardContent className="px-4">
-          <GameBoard
-            board={data.board}
-            selectedCard={selectedCard}
-            playerColour={playerColour}
-            onSpaceClick={onSpaceClick}
-            isActionPending={isMovePending}
-            isInteractive={isInteractive}
-          />
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-3">
+      <div
+        className="w-full md:w-[var(--board-max-size)] md:max-w-[var(--board-max-size)]"
+        style={{ ["--board-max-size" as string]: boardMaxSize }}
+      >
+        <Card size="sm" className="w-full">
+          <CardContent className="px-3">
+            <GameBoard
+              board={data.board}
+              selectedCard={selectedCard}
+              playerColour={playerColour}
+              onSpaceClick={onSpaceClick}
+              isActionPending={isMovePending}
+              isInteractive={isInteractive}
+            />
+          </CardContent>
+        </Card>
+      </div>
       <GameInfoSidebar data={data} />
     </div>
   );
@@ -727,6 +744,8 @@ export function LobbyPage() {
   const showGameCompleteOverlay = isGameCompleted && dismissedCompleteForGameUuid !== gameUuid;
   const status = getStatusPresentation(isCreateIntent ? "NOT_STARTED" : lobbyGame.data?.status);
   const shortGameCode = gameUuid ? (toShortUuid(gameUuid) ?? gameUuid) : "";
+  const playerHand = (!isViewer && lobbyGame.data?.playerHand) ? lobbyGame.data.playerHand : [];
+  const hasHandDock = playerHand.length > 0;
 
   const copyInviteLink = async () => {
     if (!shortGameCode) return;
@@ -765,7 +784,7 @@ export function LobbyPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:px-6 md:py-12">
+      <div className={`mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:w-fit md:max-w-none md:px-6 md:py-12 ${hasHandDock ? "pb-40 md:pb-44" : ""}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <header className="space-y-2">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -792,9 +811,6 @@ export function LobbyPage() {
               <Badge variant="outline" className={`font-medium ${status.className}`}>
                 {isCreateIntent ? "Creating game" : status.label}
               </Badge>
-              {gameUuid && lobbyGame.isFetching ? (
-                <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
-              ) : null}
             </div>
           </header>
           <div className="flex items-center gap-2">
@@ -817,6 +833,13 @@ export function LobbyPage() {
           <AlertBanner key={alert.key} message={alert.message} />
         ))}
 
+        <PlayerStatusRow
+          isViewer={isViewer}
+          isInProgress={isInProgress}
+          isPlayersTurn={isPlayersTurn}
+          playerColour={playerColour}
+        />
+
         {gameUuid && isViewer ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
             <span>Viewer mode is read-only. Moves and card selection are disabled.</span>
@@ -832,20 +855,6 @@ export function LobbyPage() {
 
         {gameUuid && lobbyGame.data ? (
           <>
-            {!isViewer ? (
-              <StatusBanner
-                isPlayersTurn={canSubmitMoves}
-                playerColour={playerColour}
-                isInProgress={isInProgress}
-              />
-            ) : null}
-            {canSubmitMoves && lobbyGame.data.playerHand?.length ? (
-              <PlayerHand
-                hand={lobbyGame.data.playerHand}
-                selectedCard={selectedCard}
-                onSelectCard={setSelectedCard}
-              />
-            ) : null}
             <GameContent
               data={lobbyGame.data}
               selectedCard={canSubmitMoves ? selectedCard : null}
@@ -853,6 +862,7 @@ export function LobbyPage() {
               onSpaceClick={handleBoardClick}
               isMovePending={moveMutation.isPending}
               isInteractive={canSubmitMoves && !moveMutation.isPending}
+              hasHandDock={hasHandDock}
             />
           </>
         ) : (
@@ -905,6 +915,29 @@ export function LobbyPage() {
           }}
         />
       </div>
+
+      {hasHandDock ? (
+        <div className="fixed inset-x-0 bottom-0 z-40">
+          <div className="border-t border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 md:px-6">
+              <div className="flex shrink-0 items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
+                  Your hand
+                </p>
+              </div>
+              <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+                <PlayerHand
+                  hand={playerHand}
+                  selectedCard={selectedCard}
+                  onSelectCard={setSelectedCard}
+                  isInteractive={canSubmitMoves}
+                  variant="dock"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
