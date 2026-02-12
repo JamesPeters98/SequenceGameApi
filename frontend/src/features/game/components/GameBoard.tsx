@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { components } from "@/api/schema";
 
 type BoardResponse = components["schemas"]["BoardResponse"];
@@ -100,12 +101,38 @@ export function GameBoard({
   isActionPending = false,
   isInteractive = true,
 }: Props) {
+  const boardGridRef = useRef<HTMLDivElement | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
+
   const spaces =
     board?.spaces?.filter(
       (space): space is BoardSpaceResponse &
         Required<Pick<BoardSpaceResponse, "row" | "col">> =>
         typeof space.row === "number" && typeof space.col === "number",
     ) ?? [];
+
+  const maxRow = spaces.length ? Math.max(...spaces.map((space) => space.row)) : 0;
+  const maxCol = spaces.length ? Math.max(...spaces.map((space) => space.col)) : 0;
+
+  useEffect(() => {
+    const node = boardGridRef.current;
+    if (!node) return;
+
+    const updateMode = () => {
+      const columnCount = maxCol + 1;
+      const width = node.clientWidth;
+      const cellSize = columnCount > 0 ? width / columnCount : width;
+      setIsCompact(cellSize < 44);
+    };
+
+    updateMode();
+    const observer = new ResizeObserver(updateMode);
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [maxCol]);
 
   if (spaces.length === 0) {
     return (
@@ -115,13 +142,12 @@ export function GameBoard({
     );
   }
 
-  const maxRow = Math.max(...spaces.map((space) => space.row));
-  const maxCol = Math.max(...spaces.map((space) => space.col));
   const spaceByPosition = new Map(spaces.map((space) => [`${space.row}-${space.col}`, space]));
 
   return (
     <div
-      className="grid gap-1.5 md:gap-2"
+      ref={boardGridRef}
+      className={`grid ${isCompact ? "gap-0" : "gap-1.5 md:gap-2"}`}
       style={{ gridTemplateColumns: `repeat(${maxCol + 1}, minmax(0, 1fr))` }}
     >
       {Array.from({ length: maxRow + 1 }, (_, rowIndex) =>
@@ -133,13 +159,20 @@ export function GameBoard({
           const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
           const highlightClass = getHighlightClass(space, selectedCard, playerColour);
           const borderClass = highlightClass ?? getBorderClass(space?.colour);
+          const isTop = rowIndex === 0;
+          const isBottom = rowIndex === maxRow;
+          const isLeft = colIndex === 0;
+          const isRight = colIndex === maxCol;
+          const compactCornerClass = isCompact
+            ? `${isTop && isLeft ? "rounded-tl-md " : ""}${isTop && isRight ? "rounded-tr-md " : ""}${isBottom && isLeft ? "rounded-bl-md " : ""}${isBottom && isRight ? "rounded-br-md " : ""}`
+            : "";
 
           return (
             <button
               key={key}
-              className={`relative flex aspect-square min-h-0 flex-col justify-between rounded-md border ${borderClass} bg-background p-1 text-left shadow-sm transition md:rounded-lg md:p-1.5 ${
+              className={`relative flex aspect-square min-h-0 flex-col justify-between border bg-background ${borderClass} ${compactCornerClass} ${isCompact ? "rounded-none p-1 shadow-none" : "rounded-md p-1 shadow-sm md:rounded-lg md:p-1.5"} text-left transition ${
                 isInteractive
-                  ? "hover:-translate-y-0.5 hover:border-primary hover:shadow-md"
+                  ? (isCompact ? "hover:border-primary" : "hover:-translate-y-0.5 hover:border-primary hover:shadow-md")
                   : "cursor-not-allowed opacity-90"
               }`}
               onClick={() => {
