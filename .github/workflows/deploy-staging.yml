@@ -39,10 +39,7 @@ jobs:
 
       - name: Build backend Docker image
         working-directory: ./backend
-        run: ./gradlew bootBuildImage --imageName=${{ env.BACKEND_IMAGE }}
-
-      - name: Push backend image
-        run: docker push ${{ env.BACKEND_IMAGE }}
+        run: ./gradlew bootBuildImage --imageName=${{ env.BACKEND_IMAGE }} --publishImage
 
       - name: Build frontend Docker image
         run: |
