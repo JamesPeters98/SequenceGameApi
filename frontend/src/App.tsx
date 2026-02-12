@@ -9,6 +9,7 @@ export function App() {
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/lobby" element={<LobbyPage />} />
         <Route path="/lobby/:gameUuid/:privatePlayerUuid" element={<LobbyPage />} />
         <Route path="/lobby/:gameUuid" element={<LobbyPage />} />
         <Route path="*" element={<Navigate replace to="/" />} />

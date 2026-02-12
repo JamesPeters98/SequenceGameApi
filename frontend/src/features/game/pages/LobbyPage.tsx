@@ -1,16 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, Navigate, useParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import type { components } from "@/api/schema";
-import { getGameDetails, getGameDetailsAsViewer, startGame, submitMove } from "@/features/game/api";
+import { createGameSession, getGameDetails, getGameDetailsAsViewer, joinGameSession, startGame, submitMove } from "@/features/game/api";
 import { GameBoard } from "@/features/game/components/GameBoard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ModeToggle } from "@/components/mode-toggle";
 import { toCanonicalUuid, toShortUuid } from "@/lib/uuid";
+import { IconLink } from "@tabler/icons-react";
 
 const suitIcons = {
   SPADES: "/suit-spade-fill-svgrepo-com.svg",
@@ -48,6 +49,18 @@ function formatUuid(value?: string): string {
   return toShortUuid(value) ?? value;
 }
 
+function buildLobbyUrl(
+  gameUuid: string,
+  privatePlayerUuid?: string,
+): string {
+  const shortGameUuid = toShortUuid(gameUuid) ?? gameUuid;
+  if (privatePlayerUuid) {
+    const shortPrivatePlayerUuid = toShortUuid(privatePlayerUuid) ?? privatePlayerUuid;
+    return `/lobby/${shortGameUuid}/${shortPrivatePlayerUuid}`;
+  }
+  return `/lobby/${shortGameUuid}`;
+}
+
 function InfoRow({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -61,6 +74,101 @@ function AlertBanner({ message }: { message: string }) {
   return (
     <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
       {message}
+    </div>
+  );
+}
+
+function PlayerNameDialog({
+  isOpen,
+  mode,
+  playerName,
+  isPending,
+  errorMessage,
+  onPlayerNameChange,
+  onClose,
+  onSubmit,
+}: {
+  isOpen: boolean;
+  mode: "create" | "join";
+  playerName: string;
+  isPending: boolean;
+  errorMessage: string | null;
+  onPlayerNameChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: () => void;
+}) {
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  if (!isOpen) return null;
+
+  const isCreateMode = mode === "create";
+  const title = isCreateMode ? "Create a new game" : "Join this lobby";
+  const description = isCreateMode
+    ? "Enter your player name to create and host a new game."
+    : "Enter your player name to join this game.";
+  const submitLabel = isCreateMode ? "Create game" : "Join game";
+  const trimmedName = playerName.trim();
+  const showEmptyNameError = hasAttemptedSubmit && trimmedName.length === 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (trimmedName.length === 0) {
+                setHasAttemptedSubmit(true);
+                return;
+              }
+              onSubmit();
+            }}
+          >
+          <p className="text-sm text-muted-foreground">{description}</p>
+          <label className="grid gap-2 text-sm">
+            <span className="font-medium text-muted-foreground">Player name</span>
+            <input
+              autoFocus
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+              onChange={(event) => {
+                onPlayerNameChange(event.target.value);
+                if (hasAttemptedSubmit) {
+                  setHasAttemptedSubmit(false);
+                }
+              }}
+              placeholder="Enter your name"
+              type="text"
+              value={playerName}
+            />
+            {showEmptyNameError ? (
+              <span className="text-xs text-destructive">Please enter a player name.</span>
+            ) : (
+              <span className="text-xs text-muted-foreground">This name will be visible to other players.</span>
+            )}
+          </label>
+          {errorMessage ? (
+            <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {errorMessage}
+            </div>
+          ) : null}
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={onClose} type="button">
+              Cancel
+            </Button>
+            <Button
+              disabled={isPending}
+              type="submit"
+            >
+              {isPending ? (isCreateMode ? "Creating..." : "Joining...") : submitLabel}
+            </Button>
+          </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -95,61 +203,63 @@ function PlayerHand({
   hand,
   selectedCard,
   onSelectCard,
+  isInteractive,
+  variant = "default",
 }: {
   hand: PlayingCard[];
   selectedCard: PlayingCard | null;
   onSelectCard: (card: PlayingCard | null) => void;
+  isInteractive: boolean;
+  variant?: "default" | "dock";
 }) {
   if (hand.length === 0) {
     return null;
   }
 
+  const isDock = variant === "dock";
+
   return (
-    <Card size="sm">
-      <CardContent className="px-4">
-        <p className="mb-2 text-sm font-medium text-muted-foreground">Your hand</p>
-        <div className="flex flex-wrap gap-2">
-          {hand.map((card, index) => {
-            const isJack = Boolean(card.oneEyedJack || card.twoEyedJack);
-            const isSelected = selectedCard !== null && isSameCard(card, selectedCard);
-            const suit = card.suit;
-            const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
+    <div className={isDock ? "flex flex-nowrap gap-2" : "flex flex-wrap gap-2"}>
+      {hand.map((card, index) => {
+        const isJack = Boolean(card.oneEyedJack || card.twoEyedJack);
+        const isSelected = selectedCard !== null && isSameCard(card, selectedCard);
+        const suit = card.suit;
+        const isRedSuit = suit === "HEARTS" || suit === "DIAMONDS";
 
-            let jackLabel: string | null = null;
-            if (card.twoEyedJack) jackLabel = "Wild";
-            else if (card.oneEyedJack) jackLabel = "Remove";
+        let jackLabel: string | null = null;
+        if (card.twoEyedJack) jackLabel = "Wild";
+        else if (card.oneEyedJack) jackLabel = "Remove";
 
-            return (
-              <button
-                key={`${card.suit ?? "unknown"}-${card.value ?? "x"}-${index}`}
-                type="button"
-                onClick={() => onSelectCard(isSelected ? null : card)}
-                className="focus:outline-none"
-              >
-                <Badge
-                  variant="outline"
-                  className={`h-auto cursor-pointer gap-2 px-2 py-1 font-mono text-xs transition-all ${
-                    isSelected
-                      ? "ring-2 ring-primary border-primary bg-primary/10"
-                      : isJack
-                        ? "border-purple-500 animate-pulse bg-background/60"
-                        : "border-border bg-background/60"
-                  }`}
-                >
-                  <span className={isRedSuit ? "text-red-500" : "text-foreground"}>
-                    {formatCardValue(card.value)}
-                  </span>
-                  {suit ? <SuitIcon suit={suit} /> : null}
-                  {jackLabel ? (
-                    <span className="text-[10px] font-semibold text-purple-500">{jackLabel}</span>
-                  ) : null}
-                </Badge>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+        return (
+          <button
+            key={`${card.suit ?? "unknown"}-${card.value ?? "x"}-${index}`}
+            type="button"
+            onClick={() => onSelectCard(isSelected ? null : card)}
+            className="focus:outline-none"
+            disabled={!isInteractive}
+          >
+            <Badge
+              variant="outline"
+              className={`h-auto cursor-pointer gap-2 px-2 py-1 font-mono text-xs transition-all ${
+                isSelected
+                  ? "ring-2 ring-primary border-primary bg-primary/10"
+                  : isJack
+                    ? "border-purple-500 animate-pulse bg-background/60"
+                    : "border-border bg-background/60"
+              } ${!isInteractive ? "opacity-60" : ""} ${isDock ? "px-3 py-2 text-sm" : ""}`}
+            >
+              <span className={isRedSuit ? "text-red-500" : "text-foreground"}>
+                {formatCardValue(card.value)}
+              </span>
+              {suit ? <SuitIcon suit={suit} /> : null}
+              {jackLabel ? (
+                <span className="text-[10px] font-semibold text-purple-500">{jackLabel}</span>
+              ) : null}
+            </Badge>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -159,36 +269,40 @@ const teamColourStyles: Record<string, { bg: string; text: string; dot: string }
   GREEN: { bg: "bg-green-500/10", text: "text-green-500", dot: "bg-green-500" },
 };
 
-function StatusBanner({
+function PlayerStatusRow({
+  isViewer,
+  isInProgress,
   isPlayersTurn,
   playerColour,
-  isInProgress,
 }: {
+  isViewer: boolean;
+  isInProgress: boolean;
   isPlayersTurn: boolean;
   playerColour?: "RED" | "BLUE" | "GREEN";
-  isInProgress: boolean;
 }) {
-  if (!isInProgress) return null;
+  if (isViewer) return null;
 
   const colourStyle = playerColour ? teamColourStyles[playerColour] : null;
+  const turnLabel = isInProgress
+    ? (isPlayersTurn ? "Your turn" : "Waiting for turn")
+    : "Waiting for game start";
+  const turnClass = isInProgress
+    ? (isPlayersTurn
+      ? "border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400"
+      : "border-border bg-muted text-muted-foreground")
+    : "border-border bg-muted text-muted-foreground";
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       {colourStyle ? (
-        <div className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium ${colourStyle.bg} ${colourStyle.text}`}>
-          <span className={`inline-block h-3 w-3 rounded-full ${colourStyle.dot}`} />
+        <Badge variant="outline" className={`gap-1.5 ${colourStyle.bg} ${colourStyle.text}`}>
+          <span className={`inline-block h-2 w-2 rounded-full ${colourStyle.dot}`} />
           Team {playerColour}
-        </div>
+        </Badge>
       ) : null}
-      <div
-        className={`rounded-lg border px-4 py-2 text-sm font-medium ${
-          isPlayersTurn
-            ? "border-green-500/40 bg-green-500/10 text-green-500 animate-pulse"
-            : "border-border bg-muted text-muted-foreground"
-        }`}
-      >
-        {isPlayersTurn ? "Your turn!" : "Waiting for opponent..."}
-      </div>
+      <Badge variant="outline" className={turnClass}>
+        {turnLabel}
+      </Badge>
     </div>
   );
 }
@@ -214,12 +328,10 @@ function collectAlerts(
 }
 
 function LobbyActions({
-  canStartGame,
   startGameMutation,
   gameUuid,
   privatePlayerUuid,
 }: {
-  canStartGame: boolean;
   startGameMutation: {
     isPending: boolean;
     mutate: (args: { gameUuid: string; hostUuid: string }) => void;
@@ -228,8 +340,14 @@ function LobbyActions({
   privatePlayerUuid?: string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      {canStartGame ? (
+    <Card size="sm">
+      <CardContent className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold">Host controls</span>
+          <span className="text-xs text-muted-foreground">
+            Start the match when everyone is ready.
+          </span>
+        </div>
         <Button
           onClick={() =>
             startGameMutation.mutate({
@@ -242,17 +360,41 @@ function LobbyActions({
         >
           {startGameMutation.isPending ? "Starting..." : "Start game"}
         </Button>
-      ) : null}
-      <Button asChild>
-        <Link to="/">Leave lobby view</Link>
-      </Button>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
 type GameResponse = components["schemas"]["GameResponse"];
 type MoveAction = components["schemas"]["MoveAction"];
 type MoveHistoryEntry = components["schemas"]["PairUUIDMoveAction"];
+type GameStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
+function getStatusPresentation(status?: string): { label: string; className: string } {
+  const value = status as GameStatus | undefined;
+  switch (value) {
+    case "NOT_STARTED":
+      return {
+        label: "Waiting for players",
+        className: "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+      };
+    case "IN_PROGRESS":
+      return {
+        label: "In progress",
+        className: "border-blue-500/40 bg-blue-500/10 text-blue-600 dark:text-blue-400",
+      };
+    case "COMPLETED":
+      return {
+        label: "Completed",
+        className: "border-green-500/40 bg-green-500/10 text-green-600 dark:text-green-400",
+      };
+    default:
+      return {
+        label: "Loading",
+        className: "border-border bg-muted text-muted-foreground",
+      };
+  }
+}
 
 function MoveCardBadge({ card }: { card?: PlayingCard }) {
   if (!card) {
@@ -303,9 +445,10 @@ function normalizeMoveHistoryEntry(entry: MoveHistoryEntry): { playerUuid?: stri
 }
 
 function GameInfoSidebar({ data }: { data: GameResponse }) {
-  const hostName = data.host ? data.playerNames?.[data.host] ?? formatUuid(data.host) : "-";
+  const status = getStatusPresentation(data.status);
+  const hostName = data.host ? data.playerNames?.[data.host] ?? "Unknown player" : "-";
   const currentTurnName = data.currentPlayerTurn
-    ? data.playerNames?.[data.currentPlayerTurn] ?? formatUuid(data.currentPlayerTurn)
+    ? data.playerNames?.[data.currentPlayerTurn] ?? "Unknown player"
     : "-";
   const moveHistory = (data.moveHistory ?? [])
     .map(normalizeMoveHistoryEntry)
@@ -319,7 +462,14 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
       </CardHeader>
       <CardContent>
         <div className="grid gap-2 text-sm">
-          <InfoRow label="Status:" value={data.status ?? "-"} />
+          <InfoRow
+            label="Status:"
+            value={(
+              <Badge variant="outline" className={status.className}>
+                {status.label}
+              </Badge>
+            )}
+          />
           <InfoRow
             label="Players:"
             value={`${data.playerCount ?? "-"} / ${data.maxPlayerSize ?? "-"}`}
@@ -337,7 +487,7 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
               {data.players.map((playerUuid) => {
                 const playerTeam = data.playerTeams?.[playerUuid];
                 const colourStyle = playerTeam ? teamColourStyles[playerTeam] : null;
-                const playerName = data.playerNames?.[playerUuid] ?? formatUuid(playerUuid);
+                const playerName = data.playerNames?.[playerUuid] ?? "Unknown player";
 
                 const isCurrentTurn = data.currentPlayerTurn === playerUuid;
 
@@ -376,8 +526,9 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
             <div className="max-h-64 overflow-y-auto pr-1">
               <div className="grid gap-2">
                 {moveHistory.map((entry, index) => {
+                  const moveNumber = moveHistory.length - index;
                   const playerUuid = entry.playerUuid;
-                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? formatUuid(playerUuid) : "Unknown player";
+                  const playerName = playerUuid ? data.playerNames?.[playerUuid] ?? "Unknown player" : "Unknown player";
                   const playerTeam = playerUuid ? data.playerTeams?.[playerUuid] : undefined;
                   const teamStyle = playerTeam ? teamColourStyles[playerTeam] : null;
                   const row = entry.move?.row;
@@ -388,6 +539,9 @@ function GameInfoSidebar({ data }: { data: GameResponse }) {
                       key={`${playerUuid ?? "unknown"}-${row ?? "x"}-${column ?? "x"}-${index}`}
                       className="flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-2 py-1.5 text-xs"
                     >
+                      <Badge variant="outline" className="h-auto px-1.5 py-0 text-[10px] font-mono text-muted-foreground">
+                        #{moveNumber}
+                      </Badge>
                       <span className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${teamStyle?.dot ?? "bg-muted-foreground/40"}`} />
                       <span className="max-w-28 truncate font-medium" title={playerName}>
                         {playerName}
@@ -417,6 +571,7 @@ function GameContent({
   onSpaceClick,
   isMovePending,
   isInteractive,
+  hasHandDock,
 }: {
   data: GameResponse;
   selectedCard: PlayingCard | null;
@@ -424,21 +579,31 @@ function GameContent({
   onSpaceClick: (space: BoardSpace) => void;
   isMovePending: boolean;
   isInteractive: boolean;
+  hasHandDock: boolean;
 }) {
+  const boardMaxSize = hasHandDock
+    ? "max(24rem, min(calc(100dvh - 20rem), calc(100vw - 30rem)))"
+    : "max(24rem, min(calc(100dvh - 14rem), calc(100vw - 30rem)))";
+
   return (
-    <div className="flex flex-col gap-4 md:flex-row md:items-start">
-      <Card size="sm" className="w-full md:max-w-3xl">
-        <CardContent className="px-4">
-          <GameBoard
-            board={data.board}
-            selectedCard={selectedCard}
-            playerColour={playerColour}
-            onSpaceClick={onSpaceClick}
-            isActionPending={isMovePending}
-            isInteractive={isInteractive}
-          />
-        </CardContent>
-      </Card>
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-3">
+      <div
+        className="w-full md:w-[var(--board-max-size)] md:max-w-[var(--board-max-size)]"
+        style={{ ["--board-max-size" as string]: boardMaxSize }}
+      >
+        <Card size="sm" className="w-full">
+          <CardContent className="px-3">
+            <GameBoard
+              board={data.board}
+              selectedCard={selectedCard}
+              playerColour={playerColour}
+              onSpaceClick={onSpaceClick}
+              isActionPending={isMovePending}
+              isInteractive={isInteractive}
+            />
+          </CardContent>
+        </Card>
+      </div>
       <GameInfoSidebar data={data} />
     </div>
   );
@@ -493,13 +658,21 @@ function getPlayerColour(
 }
 
 export function LobbyPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { gameUuid: gameUuidParam, privatePlayerUuid: privatePlayerUuidParam } = useParams();
   const [selectedCard, setSelectedCard] = useState<PlayingCard | null>(null);
-  const [isCompleteOverlayDismissed, setIsCompleteOverlayDismissed] = useState(false);
+  const [dismissedCompleteForGameUuid, setDismissedCompleteForGameUuid] = useState<string | null>(null);
+  const [isPlayerDialogOpen, setIsPlayerDialogOpen] = useState(
+    () => searchParams.get("join") === "1" || searchParams.get("create") === "1",
+  );
+  const [playerName, setPlayerName] = useState("");
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
 
   const gameUuid = toCanonicalUuid(gameUuidParam);
   const privatePlayerUuid = toCanonicalUuid(privatePlayerUuidParam);
+  const isCreateIntent = !gameUuid && searchParams.get("create") === "1";
   const isViewer = !privatePlayerUuid;
 
   const lobbyGame = useQuery({
@@ -542,9 +715,23 @@ export function LobbyPage() {
     },
   });
 
-  if (!gameUuid) {
-    return <Navigate replace to="/" />;
-  }
+  const joinGameMutation = useMutation({
+    mutationFn: joinGameSession,
+    onSuccess: (data) => {
+      setIsPlayerDialogOpen(false);
+      setPlayerName("");
+      navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid), { replace: true });
+    },
+  });
+
+  const createGameMutation = useMutation({
+    mutationFn: createGameSession,
+    onSuccess: (data) => {
+      setIsPlayerDialogOpen(false);
+      setPlayerName("");
+      navigate(buildLobbyUrl(data.gameUuid, data.privatePlayerUuid), { replace: true });
+    },
+  });
 
   const userPublicUuid = lobbyGame.data?.userPublicUuid;
   const isHost = matchesPlayer(lobbyGame.data?.host, userPublicUuid, privatePlayerUuid);
@@ -554,17 +741,27 @@ export function LobbyPage() {
   const playerColour = getPlayerColour(lobbyGame.data, userPublicUuid, privatePlayerUuid);
   const canSubmitMoves = Boolean(privatePlayerUuid) && isPlayersTurn && isInProgress;
   const isGameCompleted = lobbyGame.data?.status === "COMPLETED";
-  const showGameCompleteOverlay = isGameCompleted && !isCompleteOverlayDismissed;
+  const showGameCompleteOverlay = isGameCompleted && dismissedCompleteForGameUuid !== gameUuid;
+  const status = getStatusPresentation(isCreateIntent ? "NOT_STARTED" : lobbyGame.data?.status);
+  const shortGameCode = gameUuid ? (toShortUuid(gameUuid) ?? gameUuid) : "";
+  const playerHand = (!isViewer && lobbyGame.data?.playerHand) ? lobbyGame.data.playerHand : [];
+  const hasHandDock = playerHand.length > 0;
 
-  useEffect(() => {
-    setIsCompleteOverlayDismissed(false);
-  }, [gameUuid]);
-
-  useEffect(() => {
-    if (!isGameCompleted) {
-      setIsCompleteOverlayDismissed(false);
+  const copyInviteLink = async () => {
+    if (!shortGameCode) return;
+    try {
+      const inviteUrl = `${window.location.origin}/lobby/${shortGameCode}`;
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopiedInviteLink(true);
+      window.setTimeout(() => setCopiedInviteLink(false), 1500);
+    } catch {
+      setCopiedInviteLink(false);
     }
-  }, [isGameCompleted]);
+  };
+
+  if (!gameUuid && !isCreateIntent) {
+    return <Navigate replace to="/" />;
+  }
 
   const alerts = collectAlerts(lobbyGame, startGameMutation, moveMutation);
 
@@ -587,7 +784,7 @@ export function LobbyPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:px-6 md:py-12">
+      <div className={`mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:w-fit md:max-w-none md:px-6 md:py-12 ${hasHandDock ? "pb-40 md:pb-44" : ""}`}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <header className="space-y-2">
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -595,62 +792,69 @@ export function LobbyPage() {
             </p>
             <div className="flex items-center gap-3">
               <h1 className="text-3xl font-semibold">Lobby</h1>
-              {lobbyGame.isFetching ? (
-                <span className="text-xs text-muted-foreground animate-pulse">Updating...</span>
+              {gameUuid ? (
+                <div className="flex items-center gap-1.5 rounded-lg border border-border/80 bg-card px-2 py-1">
+                  <span className="text-xs text-muted-foreground">Code</span>
+                  <span className="font-mono text-xs">{formatUuid(gameUuid)}</span>
+                  <Button
+                    size="icon-xs"
+                    variant="ghost"
+                    onClick={copyInviteLink}
+                    type="button"
+                    aria-label="Copy invite link"
+                    title={copiedInviteLink ? "Copied invite link" : "Copy invite link"}
+                  >
+                    <IconLink />
+                  </Button>
+                </div>
               ) : null}
+              <Badge variant="outline" className={`font-medium ${status.className}`}>
+                {isCreateIntent ? "Creating game" : status.label}
+              </Badge>
             </div>
           </header>
-          <ModeToggle />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">Leave lobby</Link>
+            </Button>
+            <ModeToggle />
+          </div>
         </div>
 
-        <Card>
-          <CardContent className="grid gap-2 text-sm">
-            <InfoRow label="Game UUID:" value={formatUuid(gameUuid)} />
-            {userPublicUuid ? (
-              <InfoRow label="Public Player UUID:" value={formatUuid(userPublicUuid)} />
-            ) : null}
-            {privatePlayerUuid ? (
-              <InfoRow label="Private Player UUID:" value={formatUuid(privatePlayerUuid)} />
-            ) : null}
-            {!privatePlayerUuid ? (
-              <InfoRow label="Mode:" value="Viewer (read-only)" />
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <LobbyActions
-          canStartGame={canStartGame}
-          startGameMutation={startGameMutation}
-          gameUuid={gameUuid}
-          privatePlayerUuid={privatePlayerUuid}
-        />
+        {gameUuid && canStartGame ? (
+          <LobbyActions
+            startGameMutation={startGameMutation}
+            gameUuid={gameUuid}
+            privatePlayerUuid={privatePlayerUuid}
+          />
+        ) : null}
 
         {alerts.map((alert) => (
           <AlertBanner key={alert.key} message={alert.message} />
         ))}
 
-        {isViewer ? (
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
-            Viewer mode is read-only. Moves and card selection are disabled.
+        <PlayerStatusRow
+          isViewer={isViewer}
+          isInProgress={isInProgress}
+          isPlayersTurn={isPlayersTurn}
+          playerColour={playerColour}
+        />
+
+        {gameUuid && isViewer ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+            <span>Viewer mode is read-only. Moves and card selection are disabled.</span>
+            <Button
+              variant="outline"
+              onClick={() => setIsPlayerDialogOpen(true)}
+              type="button"
+            >
+              Join as player
+            </Button>
           </div>
         ) : null}
 
-        {lobbyGame.data ? (
+        {gameUuid && lobbyGame.data ? (
           <>
-            {!isViewer ? (
-              <StatusBanner
-                isPlayersTurn={canSubmitMoves}
-                playerColour={playerColour}
-                isInProgress={isInProgress}
-              />
-            ) : null}
-            {canSubmitMoves && lobbyGame.data.playerHand?.length ? (
-              <PlayerHand
-                hand={lobbyGame.data.playerHand}
-                selectedCard={selectedCard}
-                onSelectCard={setSelectedCard}
-              />
-            ) : null}
             <GameContent
               data={lobbyGame.data}
               selectedCard={canSubmitMoves ? selectedCard : null}
@@ -658,20 +862,82 @@ export function LobbyPage() {
               onSpaceClick={handleBoardClick}
               isMovePending={moveMutation.isPending}
               isInteractive={canSubmitMoves && !moveMutation.isPending}
+              hasHandDock={hasHandDock}
             />
           </>
         ) : (
           <Card size="sm">
             <CardContent className="text-sm text-muted-foreground">
-              Loading lobby details...
+              {isCreateIntent ? "Create a game to enter the lobby." : "Loading lobby details..."}
             </CardContent>
           </Card>
         )}
 
-        {lobbyGame.data && showGameCompleteOverlay && (
-          <GameCompleteOverlay data={lobbyGame.data} onDismiss={() => setIsCompleteOverlayDismissed(true)} />
+        {gameUuid && lobbyGame.data && showGameCompleteOverlay && (
+          <GameCompleteOverlay data={lobbyGame.data} onDismiss={() => setDismissedCompleteForGameUuid(gameUuid)} />
         )}
+
+        <PlayerNameDialog
+          isOpen={isPlayerDialogOpen}
+          mode={isCreateIntent ? "create" : "join"}
+          playerName={playerName}
+          isPending={isCreateIntent ? createGameMutation.isPending : joinGameMutation.isPending}
+          errorMessage={
+            isCreateIntent
+              ? (createGameMutation.isError ? createGameMutation.error.message : null)
+              : (joinGameMutation.isError ? joinGameMutation.error.message : null)
+          }
+          onPlayerNameChange={setPlayerName}
+          onClose={() => {
+            setIsPlayerDialogOpen(false);
+            setPlayerName("");
+            joinGameMutation.reset();
+            createGameMutation.reset();
+            if (searchParams.has("join") || searchParams.has("create")) {
+              const nextSearchParams = new URLSearchParams(searchParams);
+              nextSearchParams.delete("join");
+              nextSearchParams.delete("create");
+              setSearchParams(nextSearchParams, { replace: true });
+            }
+          }}
+          onSubmit={() => {
+            if (isCreateIntent) {
+              createGameMutation.mutate({ playerName });
+              return;
+            }
+            if (!gameUuid) {
+              return;
+            }
+            joinGameMutation.mutate({
+              gameUuid,
+              playerName,
+            });
+          }}
+        />
       </div>
+
+      {hasHandDock ? (
+        <div className="fixed inset-x-0 bottom-0 z-40">
+          <div className="border-t border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+            <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 md:px-6">
+              <div className="flex shrink-0 items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
+                  Your hand
+                </p>
+              </div>
+              <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+                <PlayerHand
+                  hand={playerHand}
+                  selectedCard={selectedCard}
+                  onSelectCard={setSelectedCard}
+                  isInteractive={canSubmitMoves}
+                  variant="dock"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
