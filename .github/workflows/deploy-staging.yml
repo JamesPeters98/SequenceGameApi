@@ -14,11 +14,14 @@ jobs:
     permissions:
       contents: read
       packages: write
-    env:
-      BACKEND_IMAGE: ghcr.io/${{ github.repository_owner }}/sequence-game-staging-backend:latest
-      FRONTEND_IMAGE: ghcr.io/${{ github.repository_owner }}/sequence-game-staging-frontend:latest
     steps:
       - uses: actions/checkout@v6.0.2
+
+      - name: Normalize image names
+        run: |
+          echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+          echo "BACKEND_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sequence-game-staging-backend:latest" >> "$GITHUB_ENV"
+          echo "FRONTEND_IMAGE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/sequence-game-staging-frontend:latest" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v5.2.0
         with:
