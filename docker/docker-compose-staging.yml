@@ -28,8 +28,6 @@ services:
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD:-sequencegame_staging_password}"
       CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
       SEQUENCE_API_BEARER_TOKEN: "${SEQUENCE_API_BEARER_TOKEN:-default-bearer-token}"
-    ports:
-      - "8080:8080"
 
   frontend:
     build:
@@ -42,8 +40,6 @@ services:
     image: sequence-game-staging-frontend:latest
     depends_on:
       - backend
-    ports:
-      - "4173:4173"
 
 volumes:
   pgdata_staging:
