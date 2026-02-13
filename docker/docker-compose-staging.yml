@@ -26,7 +26,7 @@ services:
       SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sequencegame}}"
       SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME:-sequencegame}"
       SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD:-sequencegame_staging_password}"
-      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
+      CORS_ALLOWED_ORIGINS: "https://${SERVICE_FQDN_FRONTEND}"
       SEQUENCE_API_BEARER_TOKEN: "${SEQUENCE_API_BEARER_TOKEN:-default-bearer-token}"
 
   frontend:
@@ -34,8 +34,8 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: "${VITE_API_URL}"
-        VITE_ALLOWED_HOSTS: "${VITE_ALLOWED_HOSTS}"
+        VITE_API_URL: "https://${SERVICE_FQDN_BACKEND}"
+        VITE_ALLOWED_HOSTS: "${SERVICE_FQDN_FRONTEND}"
         VITE_API_BEARER_TOKEN: "${VITE_API_BEARER_TOKEN-default-bearer-token}"
     image: sequence-game-staging-frontend:latest
     depends_on:
