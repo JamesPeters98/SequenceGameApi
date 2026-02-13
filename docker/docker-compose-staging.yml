@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:18.1
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB:-sequencegame}"
+      POSTGRES_USER: "${SPRING_DATASOURCE_USERNAME:-sequencegame}"
+      POSTGRES_PASSWORD: "${SPRING_DATASOURCE_PASSWORD:-sequencegame_staging_password}"
+    volumes:
+      - pgdata_staging:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SPRING_DATASOURCE_USERNAME:-sequencegame} -d ${POSTGRES_DB:-sequencegame}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: sequence-game-staging-backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: "prod,staging"
+      SPRING_DATASOURCE_URL: "${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sequencegame}}"
+      SPRING_DATASOURCE_USERNAME: "${SPRING_DATASOURCE_USERNAME:-sequencegame}"
+      SPRING_DATASOURCE_PASSWORD: "${SPRING_DATASOURCE_PASSWORD:-sequencegame_staging_password}"
+      CORS_ALLOWED_ORIGINS: "${CORS_ALLOWED_ORIGINS}"
+      SEQUENCE_API_BEARER_TOKEN: "${SEQUENCE_API_BEARER_TOKEN:-default-bearer-token}"
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "${VITE_API_URL}"
+        VITE_ALLOWED_HOSTS: "${VITE_ALLOWED_HOSTS}"
+        VITE_API_BEARER_TOKEN: "${VITE_API_BEARER_TOKEN-default-bearer-token}"
+    image: sequence-game-staging-frontend:latest
+    depends_on:
+      - backend
+    ports:
+      - "4173:4173"
+
+volumes:
+  pgdata_staging:
