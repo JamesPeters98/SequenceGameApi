@@ -37,8 +37,6 @@ services:
         VITE_ALLOWED_HOSTS: "${SERVICE_FQDN_FRONTEND}"
         VITE_API_BEARER_TOKEN: "${SERVICE_PASSWORD_BACKEND}"
     image: sequence-game-staging-frontend:latest
-    ports:
-      - "4173:4173"
     depends_on:
       - backend
 
