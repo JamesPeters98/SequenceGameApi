@@ -26,7 +26,6 @@ services:
     environment:
       <<: *db-env
       SPRING_PROFILES_ACTIVE: "prod,staging"
-      SEQUENCE_API_BEARER_TOKEN: "${SERVICE_PASSWORD_BACKEND}"
 
   frontend:
     build:
@@ -35,7 +34,6 @@ services:
       args:
         VITE_API_URL: "${SERVICE_URL_BACKEND}"
         VITE_ALLOWED_HOSTS: "${SERVICE_FQDN_FRONTEND}"
-        VITE_API_BEARER_TOKEN: "${SERVICE_PASSWORD_BACKEND}"
     image: sequence-game-staging-frontend:latest
     depends_on:
       - backend
