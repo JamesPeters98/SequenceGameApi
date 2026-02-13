@@ -1,5 +1,3 @@
-SET search_path TO current_schema;
-
 CREATE TYPE game_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED');
 CREATE TYPE chip_colour AS ENUM ('RED', 'BLUE', 'GREEN');
 CREATE TYPE card_suit   AS ENUM ('SPADES', 'HEARTS', 'DIAMONDS', 'CLUBS');
