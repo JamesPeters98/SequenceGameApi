@@ -17,6 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
+      - name: Set up Docker daemon
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": false
+              }
+            }
+
       - name: Normalize image names
         run: |
           echo "OWNER_LC=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
@@ -34,12 +44,12 @@ jobs:
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
-      - name: Reset Docker image store
-        run: docker image prune -af
+      - name: Docker info
+        run: docker info
 
       - name: Build backend Docker image
         working-directory: ./backend
-        run: ./gradlew bootBuildImage --imageName=${{ env.BACKEND_IMAGE }} --publishImage --cleanCache --pullPolicy=ALWAYS
+        run: ./gradlew bootBuildImage --imageName=${{ env.BACKEND_IMAGE }} --publishImage --trustBuilder --cleanCache --pullPolicy=ALWAYS
 
       - name: Build frontend Docker image
         run: |
