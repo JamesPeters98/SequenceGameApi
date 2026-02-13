@@ -20,7 +20,7 @@ services:
       args:
         VITE_API_URL: "${SERVICE_URL_BACKEND}"
         VITE_ALLOWED_HOSTS: "${SERVICE_FQDN_FRONTEND}"
-        VITE_API_BEARER_TOKEN: "${VITE_API_BEARER_TOKEN-default-bearer-token}"
+        VITE_API_BEARER_TOKEN: "${VITE_API_BEARER_TOKEN:-default-bearer-token}"
     image: sequence-game-staging-frontend:latest
     depends_on:
       - backend
