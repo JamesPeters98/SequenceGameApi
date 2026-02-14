@@ -9,6 +9,9 @@ const baseUrl = configuredApiUrl
 
 const apiBearerToken = import.meta.env.VITE_API_BEARER_TOKEN?.trim();
 
+console.log("Api URL: "+baseUrl);
+console.log("Api Token: "+apiBearerToken);
+
 export const api = createClient<paths>({
   baseUrl,
 });

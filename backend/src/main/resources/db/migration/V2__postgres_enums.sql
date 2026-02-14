@@ -1,34 +1,8 @@
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'game_status') THEN
-        CREATE TYPE game_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED');
-    END IF;
-END
-$$;
+CREATE TYPE game_status AS ENUM ('NOT_STARTED', 'IN_PROGRESS', 'COMPLETED');
+CREATE TYPE chip_colour AS ENUM ('RED', 'BLUE', 'GREEN');
+CREATE TYPE card_suit   AS ENUM ('SPADES', 'HEARTS', 'DIAMONDS', 'CLUBS');
+CREATE TYPE deck_pile   AS ENUM ('DRAW', 'DISCARD');
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'chip_colour') THEN
-        CREATE TYPE chip_colour AS ENUM ('RED', 'BLUE', 'GREEN');
-    END IF;
-END
-$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'card_suit') THEN
-        CREATE TYPE card_suit AS ENUM ('SPADES', 'HEARTS', 'DIAMONDS', 'CLUBS');
-    END IF;
-END
-$$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'deck_pile') THEN
-        CREATE TYPE deck_pile AS ENUM ('DRAW', 'DISCARD');
-    END IF;
-END
-$$;
 
 ALTER TABLE game
     ALTER COLUMN status TYPE game_status USING status::game_status;

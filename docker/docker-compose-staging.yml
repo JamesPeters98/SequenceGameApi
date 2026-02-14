@@ -1,0 +1,42 @@
+x-db-env: &db-env
+  POSTGRES_DB: "sequencegame"
+  POSTGRES_USER: "sequencegame"
+  POSTGRES_PASSWORD: "sequencegame_staging_password"
+
+services:
+  postgres:
+    image: postgres:18.1
+    environment: *db-env
+    volumes:
+      - pgdata_staging:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: sequence-game-staging-backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *db-env
+      SPRING_PROFILES_ACTIVE: "prod,staging"
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "${SERVICE_URL_BACKEND}"
+        VITE_ALLOWED_HOSTS: "${SERVICE_FQDN_FRONTEND}"
+    image: sequence-game-staging-frontend:latest
+    depends_on:
+      - backend
+
+volumes:
+  pgdata_staging:
