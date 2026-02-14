@@ -219,7 +219,7 @@ function PlayerHand({
   const isDock = variant === "dock";
 
   return (
-    <div className={isDock ? "flex flex-nowrap gap-2" : "flex flex-wrap gap-2"}>
+    <div className={isDock ? "flex w-max snap-x snap-mandatory flex-nowrap gap-2" : "flex flex-wrap gap-2"}>
       {hand.map((card, index) => {
         const isJack = Boolean(card.oneEyedJack || card.twoEyedJack);
         const isSelected = selectedCard !== null && isSameCard(card, selectedCard);
@@ -235,7 +235,7 @@ function PlayerHand({
             key={`${card.suit ?? "unknown"}-${card.value ?? "x"}-${index}`}
             type="button"
             onClick={() => onSelectCard(isSelected ? null : card)}
-            className="focus:outline-none"
+            className={`focus:outline-none ${isDock ? "shrink-0 snap-start" : ""}`}
             disabled={!isInteractive}
           >
             <Badge
@@ -919,13 +919,11 @@ export function LobbyPage() {
       {hasHandDock ? (
         <div className="fixed inset-x-0 bottom-0 z-40">
           <div className="border-t border-border/80 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-            <div className="mx-auto flex w-full max-w-6xl items-center gap-4 px-4 py-3 md:px-6">
-              <div className="flex shrink-0 items-center gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
-                  Your hand
-                </p>
-              </div>
-              <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 py-3 md:px-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground whitespace-nowrap">
+                Your hand
+              </p>
+              <div className="w-full overflow-x-auto pb-1">
                 <PlayerHand
                   hand={playerHand}
                   selectedCard={selectedCard}

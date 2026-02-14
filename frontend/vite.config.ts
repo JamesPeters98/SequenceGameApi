@@ -22,7 +22,7 @@ const allowedHosts =
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    ...(allowedHosts !== undefined ? { allowedHosts } : {}),
+    allowedHosts: true,
     ...(useApiProxy
       ? {
           proxy: {
